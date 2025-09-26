@@ -1,11 +1,11 @@
 ﻿/**
  * Authentication Modal Provider
- * Provides global authentication modal management using Supabase Auth
+ * Provides global authentication modal management using Hybrid Auth
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { AuthModal } from './auth-modal';
-import { useAuth } from '../../contexts/supabase-auth-context';
+import { useAuth } from '../../contexts/hybrid-auth-context';
 import { setGlobalAuthModalTrigger } from '../../lib/api-client';
 
 interface AuthModalContextType {

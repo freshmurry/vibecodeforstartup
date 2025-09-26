@@ -202,6 +202,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIsLoading(true);
 
     try {
+      // Check if Supabase is properly configured
+      const supabaseUrl = import.meta.env.VITE_SUPABASE_URL;
+      const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY;
+      
+      if (!supabaseUrl || !supabaseAnonKey || supabaseUrl.includes('your-project-id') || supabaseAnonKey.includes('your-actual')) {
+        throw new Error('Supabase is not configured. Please set up your VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in .env.local file with real values from your Supabase project.');
+      }
+
       const { data, error } = await supabase.auth.signUp({
         email,
         password,
@@ -220,7 +228,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       }
     } catch (error) {
       console.error('Sign up error:', error);
-      setError((error as AuthError).message);
+      setError((error as AuthError).message || 'An unexpected error occurred during sign up.');
     } finally {
       setIsLoading(false);
     }

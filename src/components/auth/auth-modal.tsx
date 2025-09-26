@@ -1,13 +1,14 @@
 /**
  * Modern SaaS Auth Modal
  * Supports both sign in and sign up with OAuth and email/password
+ * Uses hybrid authentication (Worker backend + Supabase fallback)
  */
 
 import { useState, useCallback } from 'react';
 import { X, Mail, Lock, User, Eye, EyeOff, Github, Chrome, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/supabase-auth-context';
+import { useAuth } from '@/contexts/hybrid-auth-context';
 import { VibeCodingLogo } from '@/components/icons/logos';
 
 interface AuthModalProps {
@@ -172,6 +173,13 @@ export function AuthModal({ isOpen, onClose, initialMode = 'signin', context }: 
             {error && (
               <div className="bg-red-50 border border-red-200 text-red-700 px-4 py-3 rounded-lg text-sm">
                 {error}
+              </div>
+            )}
+
+            {/* Auth Method Info */}
+            {import.meta.env.DEV && (
+              <div className="bg-blue-50 border border-blue-200 text-blue-700 px-3 py-2 rounded text-xs">
+                🔒 Using: Worker Backend Auth (with Supabase fallback)
               </div>
             )}
 
