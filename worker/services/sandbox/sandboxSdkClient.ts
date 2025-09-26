@@ -28,6 +28,7 @@ import {
 } from './sandboxTypes';
 
 import { createObjectLogger } from '../../logger';
+// @ts-ignore - Cloudflare runtime provides this
 import { env } from 'cloudflare:workers'
 import { BaseSandboxService } from './BaseSandboxService';
 

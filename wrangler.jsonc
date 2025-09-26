@@ -2,42 +2,51 @@
  * For more details on how to configure Wrangler, refer to:
  * https://developers.cloudflare.com/workers/wrangler/configuration/
  */
- {
+{
 	// "$schema": "node_modules/wrangler/config-schema.json",
-	"name": "vibesdk-production",
+	"name": "vibecodeforstartup",
 	"main": "worker/index.ts",
 	"compatibility_date": "2025-08-10",
-	"compatibility_flags": ["nodejs_compat"],
-    "version_metadata": {
-        "binding": "CF_VERSION_METADATA"
-    },
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	// "enable_containers": false, // Temporarily disabled
+	"version_metadata": {
+		"binding": "CF_VERSION_METADATA"
+	},
 	"assets": {
 		"directory": "dist",
 		"not_found_handling": "single-page-application",
 		// "run_worker_first": ["!/src/*", "!/api/docs/*"],
-        "run_worker_first": true,
-        "binding": "ASSETS"
+		"run_worker_first": true,
+		"binding": "ASSETS"
 	},
 	"observability": {
 		"enabled": true,
-        "head_sampling_rate": 1
+		"head_sampling_rate": 1
 	},
-  "unsafe": {
-    "bindings": [
-        {
-            "name": "API_RATE_LIMITER",
-            "type": "ratelimit",
-            "namespace_id": "2101",
-            "simple": { "limit": 1000, "period": 60 }
-        },
-        {
-            "name": "AUTH_RATE_LIMITER",
-            "type": "ratelimit",
-            "namespace_id": "2102",
-            "simple": { "limit": 1000, "period": 60 }
-        }
-    ]
-  },
+	"unsafe": {
+		"bindings": [
+			{
+				"name": "API_RATE_LIMITER",
+				"type": "ratelimit",
+				"namespace_id": "2101",
+				"simple": {
+					"limit": 1000,
+					"period": 60
+				}
+			},
+			{
+				"name": "AUTH_RATE_LIMITER",
+				"type": "ratelimit",
+				"namespace_id": "2102",
+				"simple": {
+					"limit": 1000,
+					"period": 60
+				}
+			}
+		]
+	},
 	/**
 	 * Bindings
 	 * Bindings allow your Worker to interact with resources on the Cloudflare Developer Platform, including
@@ -46,37 +55,39 @@
 	 */
 	"ai": {
 		"binding": "AI",
-        "remote": true
+		"remote": true
 	},
 	"images": {
 		"binding": "IMAGES"
 	},
-    "dispatch_namespaces": [
-        {
-            "binding": "DISPATCHER",
-            "namespace": "vibesdk-default-namespace",
-            "remote": true
-        }
-    ],
-	"containers": [
+	// Temporarily commented out dispatch namespaces (requires Workers for Platforms plan)
+	/* "dispatch_namespaces": [
+		{
+			"binding": "DISPATCHER",
+			"namespace": "vibecodeforstartup-default-namespace",
+			"remote": true
+		}
+	], */
+	// Temporarily commented out containers for deployment
+	/* "containers": [
 		{
 			"class_name": "UserAppSandboxService",
 			"image": "./SandboxDockerfile",
-            // Altering max_instances value will have no effect. Please use the MAX_SANDBOX_INSTANCES var instead.
+			// Altering max_instances value will have no effect. Please use the MAX_SANDBOX_INSTANCES var instead.
 			"max_instances": 2900,
-            // ATTENTION: Altering instance_type value will have no effect. Please use the SANDBOX_INSTANCE_TYPE var instead.
-            "instance_type": {
-                "vcpu": 4,
-                "memory_mib": 4096,
-                "disk_mb": 10240
-            },
-            "rollout_step_percentage": 100
+			// ATTENTION: Altering instance_type value will have no effect. Please use the SANDBOX_INSTANCE_TYPE var instead.
+			"instance_type": {
+				"vcpu": 4,
+				"memory_mib": 4096,
+				"disk_mb": 10240
+			},
+			"rollout_step_percentage": 100
 		}
-	],
+	], */
 	"d1_databases": [
 		{
 			"binding": "DB",
-			"database_name": "vibesdk-db",
+			"database_name": "vibecodeforstartup-db",
 			"database_id": "2764e03d-6f3a-4a7d-8145-82e9af1fbc9c",
 			"migrations_dir": "migrations",
 			"remote": true
@@ -88,65 +99,62 @@
 				"class_name": "CodeGeneratorAgent",
 				"name": "CodeGenObject"
 			},
-            {
-                "class_name": "UserAppSandboxService",
-                "name": "Sandbox"
-            },
-            {
-                "class_name": "DORateLimitStore",
-                "name": "DORateLimitStore"
-            }
+			// Temporarily commented out container-dependent Durable Object
+			/* {
+				"class_name": "UserAppSandboxService",
+				"name": "Sandbox"
+			}, */
+			{
+				"class_name": "DORateLimitStore",
+				"name": "DORateLimitStore"
+			}
 		]
 	},
-    "r2_buckets": [
-      {
-        "binding": "TEMPLATES_BUCKET",
-        "bucket_name": "vibesdk-templates",
-        "remote": true
-      }
-    ],
-    "kv_namespaces": [
-        {
-            "binding": "VibecoderStore",
-            "id": "a49eea4c7366479190ae126b77265db6",
-            "remote": true
-        }
-    ],
+	"r2_buckets": [
+		{
+			"binding": "TEMPLATES_BUCKET",
+			"bucket_name": "vibecodeforstartup-templates",
+			"remote": true
+		}
+	],
+	"kv_namespaces": [
+		{
+			"binding": "VibecoderStore",
+			"id": "a49eea4c7366479190ae126b77265db6",
+			"remote": true
+		}
+	],
 	"migrations": [
 		{
 			"new_sqlite_classes": [
-				"CodeGeneratorAgent",
-				"UserAppSandboxService"
+				"CodeGeneratorAgent"
+				// "UserAppSandboxService" // Temporarily disabled (requires containers)
 			],
 			"tag": "v1"
 		},
-        {
-            "new_sqlite_classes": [
-                "DORateLimitStore"
-            ],
-            "tag": "v2"
-        }
+		{
+			"new_sqlite_classes": [
+				"DORateLimitStore"
+			],
+			"tag": "v2"
+		}
 	],
 	"routes": [
-        {
-            "pattern": "build.cloudflare.dev",
-            "custom_domain": true
-        },
-        {
-            "pattern": "*build.cloudflare.dev/*",
-            "custom_domain": false,
-            "zone_id": "f14aecaf571802180f79dcba9a8d34c3"
-        }
-    ],
+		{
+			"pattern": "vibecodeforstartup.com",
+			"custom_domain": true,
+			"zone_id": "57971c3330af23f20af3ac1b47842f17"
+		}
+	],
 	"vars": {
-        "TEMPLATES_REPOSITORY": "https://github.com/cloudflare/vibesdk-templates",
-        "ALLOWED_EMAIL": "lawrencemurry@yahoo.com",
-        "DISPATCH_NAMESPACE": "vibesdk-default-namespace",
-        "CLOUDFLARE_AI_GATEWAY": "vibesdk-gateway",
-        "CUSTOM_DOMAIN": "lmurry",
-        "MAX_SANDBOX_INSTANCES": "10",
-        "SANDBOX_INSTANCE_TYPE": "standard"
-    },
-	"workers_dev": false,
+		"TEMPLATES_REPOSITORY": "https://github.com/cloudflare/vibecodeforstartup-templates",
+		"ALLOWED_EMAIL": "lawrencemurry@yahoo.com",
+		// "DISPATCH_NAMESPACE": "vibecodeforstartup-default-namespace", // Temporarily disabled
+		"CLOUDFLARE_AI_GATEWAY": "vibecodeforstartup-gateway",
+		"CUSTOM_DOMAIN": "vibecodeforstartup.com",
+		"MAX_SANDBOX_INSTANCES": "10",
+		"SANDBOX_INSTANCE_TYPE": "standard"
+	},
+	"workers_dev": true, // Enable workers.dev subdomain as fallback
 	"preview_urls": false
 }

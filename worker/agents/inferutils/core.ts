@@ -16,11 +16,12 @@ import {
 import { Message, MessageContent, MessageRole } from './common';
 import { ToolCallResult, ToolDefinition } from '../tools/types';
 import { AIModels, InferenceMetadata } from './config.types';
+// If you need AIGatewayProviders, ensure it is exported from './config.types'
 // import { SecretsService } from '../../database';
 import { RateLimitService } from '../../services/rate-limit/rateLimits';
 import { AuthUser } from '../../types/auth-types';
 import { getGlobalConfigurableSettings } from '../../config';
-import { SecurityError, RateLimitExceededError } from 'shared/types/errors';
+import { SecurityError, RateLimitExceededError } from '../../../shared/types/errors';
 import { executeToolWithDefinition } from '../tools/customTools';
 
 function optimizeInputs(messages: Message[]): Message[] {

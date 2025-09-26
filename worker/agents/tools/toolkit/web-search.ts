@@ -1,3 +1,4 @@
+// @ts-ignore - Cloudflare runtime provides this
 import { env } from 'cloudflare:workers'
 import { ToolDefinition } from '../types';
 

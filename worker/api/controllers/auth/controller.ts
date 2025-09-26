@@ -12,7 +12,7 @@ import {
     registerSchema, 
     oauthProviderSchema
 } from './authSchemas';
-import { SecurityError } from 'shared/types/errors';
+import { SecurityError } from '../../../../shared/types/errors';
 import { 
     formatAuthResponse,
     mapUserResponse, 
@@ -21,6 +21,10 @@ import {
     extractSessionId
 } from '../../../utils/authUtils';
 import { RouteContext } from '../../types/route-context';
+// import { ExecutionContext } from '../../types/execution-context';
+// FIX: Update the import path if the file exists elsewhere, or create the file if missing.
+import { getCSRFConfig } from '../../../config/security';
+// If the file does not exist, create '../../types/executionContext.ts' and export the type.
 import { authMiddleware } from '../../../middleware/auth/auth';
 import { CsrfService } from '../../../services/csrf/CsrfService';
 import { BaseController } from '../baseController';
@@ -79,8 +83,9 @@ export class AuthController extends BaseController {
             });
             
             // Rotate CSRF token on successful registration if configured
-            if (CsrfService.defaults.rotateOnAuth) {
-                CsrfService.rotateToken(response);
+            const config = getCSRFConfig(env);
+            if (config.rotateOnAuth) {
+                CsrfService.rotateToken(response, env);
             }
             
             return response;
@@ -134,8 +139,9 @@ export class AuthController extends BaseController {
             });
             
             // Rotate CSRF token on successful login if configured
-            if (CsrfService.defaults.rotateOnAuth) {
-                CsrfService.rotateToken(response);
+            const config = getCSRFConfig(env);
+            if (config.rotateOnAuth) {
+                CsrfService.rotateToken(response, env);
             }
             
             return response;
@@ -615,17 +621,17 @@ export class AuthController extends BaseController {
      */
     static async getCsrfToken(request: Request, _env: Env, _ctx: ExecutionContext, _routeContext: RouteContext): Promise<Response> {
         try {
-            const token = CsrfService.getOrGenerateToken(request, false);
+            const config = getCSRFConfig(_env);
+            const token = CsrfService.getOrGenerateToken(request, _env, false);
             
             const response = AuthController.createSuccessResponse({ 
                 token,
-                headerName: CsrfService.defaults.headerName,
-                expiresIn: Math.floor(CsrfService.defaults.tokenTTL / 1000)
+                headerName: config.headerName,
+                expiresIn: Math.floor(config.tokenTTL / 1000)
             });
             
             // Set the token in cookie with proper expiration
-            const maxAge = Math.floor(CsrfService.defaults.tokenTTL / 1000);
-            CsrfService.setTokenCookie(response, token, maxAge);
+            CsrfService.setTokenCookie(response, token, _env);
             
             return response;
         } catch (error) {
@@ -651,19 +657,19 @@ export class AuthController extends BaseController {
             };
             
             // Include CSRF token with provider info
-            const csrfToken = CsrfService.getOrGenerateToken(request, false);
+            const config = getCSRFConfig(env);
+            const csrfToken = CsrfService.getOrGenerateToken(request, env, false);
             
             const response = AuthController.createSuccessResponse({
                 providers,
                 hasOAuth: providers.google || providers.github,
                 requiresEmailAuth: !providers.google && !providers.github,
                 csrfToken,
-                csrfExpiresIn: Math.floor(CsrfService.defaults.tokenTTL / 1000)
+                csrfExpiresIn: Math.floor(config.tokenTTL / 1000)
             });
             
             // Set CSRF token cookie with proper expiration
-            const maxAge = Math.floor(CsrfService.defaults.tokenTTL / 1000);
-            CsrfService.setTokenCookie(response, csrfToken, maxAge);
+            CsrfService.setTokenCookie(response, csrfToken, env);
             
             return response;
         } catch (error) {

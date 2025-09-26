@@ -5,6 +5,7 @@ import { Blueprint, BlueprintSchema, ClientReportedErrorSchema, ClientReportedEr
 import { IssueReport } from "./domain/values/IssueReport";
 import { SCOFFormat } from "./streaming-formats/scof";
 import { MAX_PHASES } from "./core/state";
+import { SystemPromptUtils } from "../config/prompts";
 
 export const PROMPT_UTILS = {
     /**
@@ -960,6 +961,49 @@ export function generalSystemPromptBuilder(
 
     const formattedPrompt = PROMPT_UTILS.replaceTemplateVariables(prompt, variables);
     return PROMPT_UTILS.verifyPrompt(formattedPrompt);
+}
+
+/**
+ * Enhanced system prompt builder that integrates VibeCoding for Startups startup-focused prompts
+ * for Cloudflare Workers and Workers AI development.
+ */
+export async function getEnhancedSystemPrompt(
+    basePrompt: string,
+    operation: 'code-generation' | 'chat' | 'analysis' | 'debug',
+    params: GeneralSystemPromptBuilderParams
+): Promise<string> {
+    try {
+        // Get the VibeCoding for Startups system prompt for the specific operation
+        const vibePrompt = await SystemPromptUtils.getPromptForOperation(operation, {
+            query: params.query,
+            template: params.templateDetails?.name || 'custom',
+            frameworks: params.frameworks?.join(', ') || 'TypeScript',
+            forCodegen: params.forCodegen
+        });
+
+        // Combine base prompt with VibeCoding for Startups enhancements
+        const combinedPrompt = `${vibePrompt}
+
+---
+
+## OPERATION-SPECIFIC INSTRUCTIONS
+
+${basePrompt}
+
+---
+
+**Enhanced with VibeCoding for Startups Startup-Focused AI Assistant**  
+**Stack**: Cloudflare Workers + Workers AI + TypeScript  
+**Focus**: MVP Development, Cost Optimization, Speed-to-Market  
+`;
+
+        // Apply standard variable replacement
+        return generalSystemPromptBuilder(combinedPrompt, params);
+    } catch (error) {
+        console.warn('Failed to load VibeCoding for Startups system prompt, falling back to base prompt:', error);
+        // Fallback to standard prompt if VibeCoding for Startups prompt fails to load
+        return generalSystemPromptBuilder(basePrompt, params);
+    }
 }
 
 export function issuesPromptFormatter(issues: IssueReport): string {

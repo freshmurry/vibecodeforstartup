@@ -11,7 +11,7 @@ import { RateLimitService } from '../../services/rate-limit/rateLimits';
 import { errorResponse } from '../../api/responses';
 import { Context } from 'hono';
 import { AppEnv } from '../../types/appenv';
-import { RateLimitExceededError } from 'shared/types/errors';
+import { RateLimitExceededError } from '../../../shared/types/errors';
 import * as Sentry from '@sentry/cloudflare';
 
 const logger = createLogger('RouteAuth');

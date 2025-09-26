@@ -10,7 +10,7 @@ import { ArrowRight } from 'react-feather';
 import { useParams, useSearchParams, useNavigate } from 'react-router';
 import { MonacoEditor } from '../../components/monaco-editor/monaco-editor';
 import { AnimatePresence, motion } from 'framer-motion';
-import { Expand, Github, LoaderCircle, RefreshCw } from 'lucide-react';
+import { Expand, Github, LoaderCircle, RefreshCw, Paperclip, X, FileText, Image, Settings } from 'lucide-react';
 import { Blueprint } from './components/blueprint';
 import { FileExplorer } from './components/file-explorer';
 import { UserMessage, AIMessage } from './components/messages';
@@ -31,6 +31,9 @@ import { useGitHubExport } from '@/hooks/use-github-export';
 import { GitHubExportModal } from '@/components/github-export-modal';
 import { ModelConfigInfo } from './components/model-config-info';
 import { useAutoScroll } from '@/hooks/use-auto-scroll';
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from '@/components/ui/dialog';
+import { ModelSelector } from '@/components/ui/model-selector';
+
 
 export default function Chat() {
 	const { chatId: urlChatId } = useParams();
@@ -48,6 +51,14 @@ export default function Chat() {
 
 	// Manual refresh trigger for preview
 	const [manualRefreshTrigger, setManualRefreshTrigger] = useState(0);
+
+	// File upload state
+	const [attachedFiles, setAttachedFiles] = useState<File[]>([]);
+	const fileInputRef = useRef<HTMLInputElement>(null);
+
+	// Model selection modal state
+	const [isModelSelectionOpen, setIsModelSelectionOpen] = useState(false);
+	const [selectedChatModel, setSelectedChatModel] = useState<string>('default');
 
 	// Debug message utilities
 	const addDebugMessage = useCallback(
@@ -122,6 +133,66 @@ export default function Chat() {
 
 	// GitHub export functionality - use urlChatId directly from URL params
 	const githubExport = useGitHubExport(websocket, urlChatId);
+
+	// File upload handlers
+	const handleFileUpload = useCallback((event: React.ChangeEvent<HTMLInputElement>) => {
+		const files = Array.from(event.target.files || []);
+		// Filter for supported file types (images and text files)
+		const supportedFiles = files.filter(file => {
+			const isImage = file.type.startsWith('image/');
+			const isText = file.type.startsWith('text/') || 
+				file.type === 'application/json' || 
+				file.type === 'application/javascript' || 
+				file.name.endsWith('.md') || 
+				file.name.endsWith('.txt') || 
+				file.name.endsWith('.ts') || 
+				file.name.endsWith('.tsx') || 
+				file.name.endsWith('.js') || 
+				file.name.endsWith('.jsx') || 
+				file.name.endsWith('.css') || 
+				file.name.endsWith('.html');
+			return isImage || isText;
+		});
+		
+		if (supportedFiles.length !== files.length) {
+			// Show warning about unsupported files
+			console.warn('Some files were not supported and were filtered out');
+		}
+		
+		setAttachedFiles(prev => [...prev, ...supportedFiles]);
+		// Clear the input value to allow uploading the same file again
+		if (event.target) {
+			event.target.value = '';
+		}
+	}, []);
+
+	const handleFileRemove = useCallback((index: number) => {
+		setAttachedFiles(prev => prev.filter((_, i) => i !== index));
+	}, []);
+
+	const handleAttachButtonClick = useCallback(() => {
+		fileInputRef.current?.click();
+	}, []);
+
+	// Model selection handlers
+	const handleOpenModelSelection = useCallback(() => {
+		setIsModelSelectionOpen(true);
+	}, []);
+
+	const handleModelSelection = useCallback((model: string) => {
+		setSelectedChatModel(model);
+		setIsModelSelectionOpen(false);
+		// Save to localStorage for persistence
+		localStorage.setItem('selectedChatModel', model);
+	}, []);
+
+	// Load saved model preference on mount
+	useEffect(() => {
+		const savedModel = localStorage.getItem('selectedChatModel');
+		if (savedModel) {
+			setSelectedChatModel(savedModel);
+		}
+	}, []);
 
 	const navigate = useNavigate();
 
@@ -405,23 +476,40 @@ export default function Chat() {
 			e.preventDefault();
 
 			// Don't submit if chat is disabled or message is empty
-			if (isChatDisabled || !newMessage.trim()) {
+			if (isChatDisabled || (!newMessage.trim() && attachedFiles.length === 0)) {
 				return;
+			}
+
+			// Prepare message with file attachments if any
+			let messageToSend = newMessage;
+			if (attachedFiles.length > 0) {
+				const fileDescriptions = attachedFiles.map(file => {
+					const isImage = file.type.startsWith('image/');
+					return `[${isImage ? 'Image' : 'File'}: ${file.name} (${(file.size / 1024).toFixed(1)}KB)]`;
+				}).join(' ');
+				messageToSend = `${newMessage}\n\nAttached files: ${fileDescriptions}`;
 			}
 
 			// When generation is active, send as conversational AI suggestion
 			websocket?.send(
 				JSON.stringify({
 					type: 'user_suggestion',
-					message: newMessage,
+					message: messageToSend,
+					attachments: attachedFiles.map(file => ({
+						name: file.name,
+						type: file.type,
+						size: file.size
+					})),
+					chatModel: selectedChatModel !== 'default' ? selectedChatModel : undefined
 				}),
 			);
-			sendUserMessage(newMessage);
+			sendUserMessage(messageToSend);
 			setNewMessage('');
+			setAttachedFiles([]);
 			// Ensure we scroll after sending our own message
 			requestAnimationFrame(() => scrollToBottom());
 		},
-		[newMessage, websocket, sendUserMessage, isChatDisabled, scrollToBottom],
+		[newMessage, attachedFiles, selectedChatModel, websocket, sendUserMessage, isChatDisabled, scrollToBottom],
 	);
 
 	const [progress, total] = useMemo((): [number, number] => {
@@ -584,7 +672,51 @@ export default function Chat() {
 						onSubmit={onNewMessage}
 						className="shrink-0 p-4 pb-5 bg-transparent"
 					>
+						{/* Model indicator */}
+						{selectedChatModel !== 'default' && (
+							<div className="mb-2 text-xs text-text-primary/60 flex items-center gap-1">
+								<Settings className="size-3" />
+								<span>Using: {selectedChatModel.split('/').pop()}</span>
+							</div>
+						)}
+
 						<div className="relative">
+							{/* Hidden file input */}
+							<input
+								type="file"
+								ref={fileInputRef}
+								onChange={handleFileUpload}
+								multiple
+								accept="image/*,.txt,.pdf,.md,.js,.jsx,.ts,.tsx,.html,.css,.json,.py,.java,.cpp,.c,.php,.rb,.go,.rs,.swift,.kt,.scala,.sh,.yml,.yaml,.xml,.csv"
+								className="hidden"
+							/>
+
+							{/* Attached files display */}
+							{attachedFiles.length > 0 && (
+								<div className="flex flex-wrap gap-2 mb-2">
+									{attachedFiles.map((file, index) => (
+										<div
+											key={index}
+											className="flex items-center gap-1 px-2 py-1 bg-bg-3 border border-border-primary rounded-md text-xs text-text-primary"
+										>
+											{file.type.startsWith('image/') ? (
+												<Image className="size-3" />
+											) : (
+												<FileText className="size-3" />
+											)}
+											<span className="max-w-[100px] truncate">{file.name}</span>
+											<button
+												type="button"
+												onClick={() => handleFileRemove(index)}
+												className="p-0.5 hover:bg-bg-1 rounded"
+											>
+												<X className="size-3" />
+											</button>
+										</div>
+									))}
+								</div>
+							)}
+
 							<textarea
 								value={newMessage}
 								onChange={(e) => {
@@ -612,7 +744,7 @@ export default function Chat() {
 											: 'Ask a follow up...'
 								}
 								rows={1}
-								className="w-full bg-bg-2 border border-text-primary/10 rounded-xl px-3 pr-10 py-2 text-sm outline-none focus:border-white/20 drop-shadow-2xl text-text-primary placeholder:!text-text-primary/50 disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto no-scrollbar min-h-[36px] max-h-[120px]"
+								className="w-full bg-bg-2 border border-text-primary/10 rounded-xl px-3 pr-24 py-2 text-sm outline-none focus:border-white/20 drop-shadow-2xl text-text-primary placeholder:!text-text-primary/50 disabled:opacity-50 disabled:cursor-not-allowed resize-none overflow-y-auto no-scrollbar min-h-[36px] max-h-[120px]"
 								style={{
 									// Auto-resize based on content
 									height: 'auto',
@@ -626,6 +758,28 @@ export default function Chat() {
 									}
 								}}
 							/>
+
+							{/* File attachment button */}
+							<button
+								type="button"
+								onClick={handleAttachButtonClick}
+								disabled={isChatDisabled}
+								className="absolute left-2 bottom-2 p-1.5 rounded-md hover:bg-bg-3 disabled:opacity-50 disabled:cursor-not-allowed text-text-primary/70 hover:text-text-primary transition-colors"
+							>
+								<Paperclip className="size-4" />
+							</button>
+
+							{/* Model selection button */}
+							<button
+								type="button"
+								onClick={handleOpenModelSelection}
+								disabled={isChatDisabled}
+								className="absolute right-10 bottom-2 p-1.5 rounded-md hover:bg-bg-3 disabled:opacity-50 disabled:cursor-not-allowed text-text-primary/70 hover:text-text-primary transition-colors"
+								title={`Select chat model (Current: ${selectedChatModel === 'default' ? 'System Default' : selectedChatModel.split('/').pop()})`}
+							>
+								<Settings className="size-4" />
+							</button>
+
 							<button
 								type="submit"
 								disabled={!newMessage.trim() || isChatDisabled}
@@ -635,6 +789,64 @@ export default function Chat() {
 							</button>
 						</div>
 					</form>
+
+					{/* Model Selection Modal */}
+					<Dialog open={isModelSelectionOpen} onOpenChange={setIsModelSelectionOpen}>
+						<DialogContent className="sm:max-w-[425px]">
+							<DialogHeader>
+								<DialogTitle>Select Chat Model</DialogTitle>
+							</DialogHeader>
+							<div className="py-4">
+								<ModelSelector
+									value={selectedChatModel}
+									onValueChange={handleModelSelection}
+									availableModels={[
+										{
+											value: 'default',
+											label: 'Default (System Choice)',
+											provider: '',
+											hasUserKey: false,
+											byokAvailable: false
+										},
+										{
+											value: 'openai/chatgpt-4o-latest',
+											label: 'ChatGPT-4o Latest',
+											provider: 'OpenAI',
+											hasUserKey: false,
+											byokAvailable: true
+										},
+										{
+											value: 'anthropic/claude-3-5-sonnet-latest',
+											label: 'Claude 3.5 Sonnet Latest',
+											provider: 'Anthropic',
+											hasUserKey: false,
+											byokAvailable: true
+										},
+										{
+											value: 'google-ai-studio/gemini-2.5-flash',
+											label: 'Gemini 2.5 Flash',
+											provider: 'Google',
+											hasUserKey: false,
+											byokAvailable: true
+										},
+										{
+											value: 'google-ai-studio/gemini-2.0-flash',
+											label: 'Gemini 2.0 Flash',
+											provider: 'Google',
+											hasUserKey: false,
+											byokAvailable: true
+										}
+									]}
+									placeholder="Select a chat model"
+									label="Chat Model"
+									includeDefaultOption={true}
+								/>
+								<p className="text-xs text-text-primary/60 mt-2">
+									This model will be used for chat conversations. You can change it anytime.
+								</p>
+							</div>
+						</DialogContent>
+					</Dialog>
 				</motion.div>
 
 				<AnimatePresence>

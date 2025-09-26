@@ -1,14 +1,14 @@
-# 🧡 Cloudflare Vibe SDK
+# 🧡 VibeCode for Startup
 
-> **An open source full-stack AI webapp generator** – Deploy your own instance of Cloudflare VibeSDK, an AI vibe coding platform that you can run and customize yourself.
+> **An open source full-stack AI webapp generator** – Deploy your own instance of VibeCode for Startup, an AI vibe coding platform that you can run and customize yourself.
 
 <div align="center">
 
 **🌟 [Try the Live Demo](https://build.cloudflare.dev) 🌟**
 
-*See VibeSDK Build in action before deploying your own instance*
+*See VibeCode for Startup Build in action before deploying your own instance*
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/vibesdk)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/freshmurry/vibecodeforstartup)
 
 **👆 Click to deploy your own instance!**
 
@@ -18,9 +18,9 @@
 
 ---
 
-## ✨ What is Cloudflare VibeSDK?
+## ✨ What is VibeCode for Startup?
 
-Cloudflare VibeSDK is an open source AI vibe coding platform built on Cloudflare's developer platform. If you're building an AI-powered platform for building applications, this is a great example that you can deploy and customize to build the whole platform yourself. Once the platform is deployed, users can say what they want to build in natural language, and the AI agent will create and deploy the application. 
+VibeCode for Startup is an open source AI vibe coding platform built on Cloudflare's developer platform. If you're building an AI-powered platform for building applications, this is a great example that you can deploy and customize to build the whole platform yourself. Once the platform is deployed, users can say what they want to build in natural language, and the AI agent will create and deploy the application. 
 
 **🌐 [Experience it live at build.cloudflare.dev](https://build.cloudflare.dev)** – Try it out before deploying your own instance!
 
@@ -48,7 +48,7 @@ Let your customers extend your product's functionality without learning your API
 
 ### 🏗️ Built on Cloudflare's Platform
 
-Cloudflare VibeSDK Build utilizes the full Cloudflare developer ecosystem:
+VibeCode for Startup Build utilizes the full Cloudflare developer ecosystem:
 
 - **Frontend**: React + Vite with modern UI components
 - **Backend**: Workers with Durable Objects for AI agents  
@@ -69,9 +69,9 @@ Before clicking "Deploy to Cloudflare", have these ready:
 ### 🔑 Required API Key
 - **Google Gemini API Key** - Get from [ai.google.dev](https://ai.google.dev)
 
-Once you click "Deploy to Cloudflare", you'll be taken to your Cloudflare dashboard where you can configure your VibeSDK deployment with these variables. 
+Once you click "Deploy to Cloudflare", you'll be taken to your Cloudflare dashboard where you can configure your VibeCode for Startup deployment with these variables. 
 
-[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/cloudflare/vibesdk)
+[![Deploy to Cloudflare Workers](https://deploy.workers.cloudflare.com/button)](https://deploy.workers.cloudflare.com/?url=https://github.com/freshmurry/vibecodeforstartup)
 
 ### 🔑 What you'll configure
 
@@ -85,7 +85,7 @@ Once you click "Deploy to Cloudflare", you'll be taken to your Cloudflare dashbo
 
 ### 🏗️ Sandbox Instance Configuration (Optional)
 
-VibeSDK uses Cloudflare Containers to run generated applications in isolated environments. You can configure the container performance tier based on your needs and Cloudflare plan.
+VibeCode for Startup uses Cloudflare Containers to run generated applications in isolated environments. You can configure the container performance tier based on your needs and Cloudflare plan.
 
 #### Available Instance Types
 
@@ -160,7 +160,7 @@ OAuth configuration is **not** shown on the initial deploy page. If you want use
 **GitHub OAuth Setup:**
 1. GitHub → **Settings** → **Developer settings** → **OAuth Apps**
 2. Click **New OAuth App**
-3. Application name: `Cloudflare VibeSDK`
+3. Application name: `VibeCode for Startup`
 4. Homepage URL: `https://your-worker-name.workers.dev`
 5. Authorization callback URL: `https://your-worker-name.workers.dev/api/auth/github/callback`
 6. Add to **both** `.dev.vars` (for local development) and `.prod.vars` (for deployment):
@@ -168,7 +168,6 @@ OAuth configuration is **not** shown on the initial deploy page. If you want use
    GITHUB_CLIENT_ID="your-github-client-id"
    GITHUB_CLIENT_SECRET="your-github-client-secret"
    ```
-
 
 ---
 ## 🎨 How It Works
@@ -254,7 +253,7 @@ export default {
 ```
 
 ### Iteration-based Code Generation
-Cloudflare VibeSDK generates apps in intelligent phases:
+VibeCode for Startup generates apps in intelligent phases:
 
 1. **Planning Phase**: Analyzes requirements, creates file structure
 2. **Foundation Phase**: Generates package.json, basic setup files  
@@ -268,10 +267,28 @@ Cloudflare VibeSDK generates apps in intelligent phases:
 ## 🏠 Local Development
 
 ### Prerequisites
-- Node.js 18+ and Bun
+- Node.js 18+ and Bun (or npm)
 - Cloudflare account with Workers paid plan
+- VS Code (recommended)
+- PowerShell (Windows) or Terminal
 
-### Quick Setup
+### Quick Setup via VS Code & PowerShell
+```powershell
+# Clone your repository (or this repo)
+git clone https://github.com/freshmurry/vibecodeforstartup.git
+cd vibecodeforstartup
+
+# Install dependencies (using npm if bun has issues)
+npm install --force
+
+# Set up local database
+wrangler d1 migrations apply vibecodeforstartup-db --local
+
+# Start the frontend development server
+npx vite --port 5174
+```
+
+### Alternative Setup with Bun
 ```bash
 # Clone your repository (or this repo)
 git clone https://github.com/your-username/your-vibe-sdk-fork.git
@@ -286,9 +303,27 @@ bun run db:migrate:local
 ### Environment Configuration
 
 **For Local Development (.dev.vars):**
-```bash
-cp .dev.vars.example .dev.vars
-# Edit .dev.vars with your API keys and tokens
+```powershell
+# Copy the example file
+Copy-Item .dev.vars.example .dev.vars
+
+# Edit .dev.vars with your API keys and tokens using VS Code
+code .dev.vars
+```
+
+**Required Environment Variables:**
+```env
+# Essential for AI functionality
+GOOGLE_AI_STUDIO_API_KEY="your-google-gemini-api-key"
+
+# Security secrets (generate random strings)
+JWT_SECRET="your-jwt-secret-32-chars-minimum" 
+WEBHOOK_SECRET="your-webhook-secret-32-chars-minimum"
+SECRETS_ENCRYPTION_KEY="your-encryption-key-32-chars-minimum"
+
+# Optional: Add other AI providers
+OPENAI_API_KEY="your-openai-api-key"
+ANTHROPIC_API_KEY="your-anthropic-api-key"
 ```
 
 **For Production Deployment (.prod.vars):**
@@ -299,6 +334,71 @@ cp .dev.vars.example .prod.vars
 
 > **Important**: Local development uses `.dev.vars`, but `bun run deploy` only reads from `.prod.vars` for deployment secrets.
 
+### 🚀 Running the Application Locally
+
+**Start Frontend Only (Recommended for UI Development):**
+```powershell
+# Start the Vite development server
+npx vite --port 5174
+
+# Your app will be available at:
+# http://localhost:5174
+```
+
+**Start Full Stack (Frontend + Worker):**
+```powershell
+# Option 1: Build and start with wrangler dev
+npm run build
+wrangler dev --local --port 8787
+
+# Option 2: Use the dev script (if dependencies are working)
+npm run dev
+```
+
+### Deploy to Cloudflare via VS Code & PowerShell
+
+**Step 1: Prepare for Deployment**
+```powershell
+# Ensure you're logged into Cloudflare
+wrangler auth login
+
+# Build the application
+npm run build
+
+# Verify your configuration
+wrangler whoami
+```
+
+**Step 2: Deploy the Worker**
+```powershell
+# Deploy using the deploy script
+npm run deploy
+
+# Or deploy manually
+wrangler deploy
+```
+
+**Step 3: Set up Production Resources**
+```powershell
+# Create/migrate remote database
+wrangler d1 migrations apply vibecodeforstartup-db --remote
+
+# Set production secrets - use automated setup script (recommended):
+.\scripts\setup-production-secrets.ps1
+
+# OR set secrets manually:
+wrangler secret put GOOGLE_AI_STUDIO_API_KEY
+wrangler secret put JWT_SECRET  
+wrangler secret put WEBHOOK_SECRET
+wrangler secret put SECRETS_ENCRYPTION_KEY
+
+# Optional: Set additional AI provider keys
+wrangler secret put OPENAI_API_KEY
+wrangler secret put ANTHROPIC_API_KEY
+```
+
+> **📋 For complete production setup**: See [**PRODUCTION_API_KEYS_GUIDE.md**](./PRODUCTION_API_KEYS_GUIDE.md) for comprehensive API key configuration and [**QUICK_SETUP_REFERENCE.md**](./QUICK_SETUP_REFERENCE.md) for quick commands.
+
 ### Deploy to Cloudflare
 ```bash
 bun run deploy  # Builds and deploys automatically (includes remote DB migration)
@@ -306,22 +406,91 @@ bun run deploy  # Builds and deploys automatically (includes remote DB migration
 
 ---
 
+### 🛠️ Development Workflow in VS Code
+
+**Recommended VS Code Extensions:**
+- Cloudflare Workers
+- TypeScript and JavaScript Language Features
+- Tailwind CSS IntelliSense
+- GitLens
+- Thunder Client (for API testing)
+
+**Common Development Commands:**
+```powershell
+# Install dependencies (if bun doesn't work on Windows)
+npm install --force
+
+# Start local development
+npx vite --port 5174
+
+# Build for production
+npm run build
+
+# Run database migrations
+wrangler d1 migrations apply vibecodeforstartup-db --local
+
+# Check for lint errors
+npm run lint
+
+# Run tests
+npm run test
+```
+
+**Troubleshooting Common Issues:**
+
+1. **Dependency Conflicts:**
+   ```powershell
+   # Remove node_modules and reinstall
+   Remove-Item -Recurse -Force node_modules
+   Remove-Item package-lock.json
+   npm install --force
+   ```
+
+2. **Database Connection Issues:**
+   ```powershell
+   # Reset local database
+   wrangler d1 migrations apply vibecodeforstartup-db --local
+   ```
+
+3. **Build Errors:**
+   ```powershell
+   # Clear cache and rebuild
+   Remove-Item -Recurse -Force dist
+   npm run build
+   ```
+
 ### Manually Deploying the Platform
 
 #### For Local Development (.dev.vars)
-1. Copy the example file: `cp .dev.vars.example .dev.vars`
+1. Copy the example file: `Copy-Item .dev.vars.example .dev.vars`
 2. Fill in your API keys and tokens
 3. Leave optional values as `"default"` if not needed
 
-#### For Production Deployment
+#### For Production Deployment via PowerShell
 1. **Build Variables**: Set in your deployment platform (GitHub Actions, etc.)
-2. **Worker Secrets**: Automatically handled by deployment script or set manually:
-   ```bash
+2. **Worker Secrets**: Set using wrangler CLI:
+   ```powershell
    wrangler secret put ANTHROPIC_API_KEY
    wrangler secret put OPENAI_API_KEY
    wrangler secret put GOOGLE_AI_STUDIO_API_KEY
+   wrangler secret put JWT_SECRET
+   wrangler secret put WEBHOOK_SECRET
+   wrangler secret put SECRETS_ENCRYPTION_KEY
    # ... etc
    ```
+
+#### Complete Deployment Script
+```powershell
+# Full deployment workflow
+git pull origin main
+npm install --force
+npm run build
+wrangler d1 migrations apply vibecodeforstartup-db --remote
+wrangler deploy
+
+# Verify deployment
+wrangler tail
+```
 
 #### Environment Variable Priority
 The deployment system follows this priority order:
@@ -335,7 +504,7 @@ Example: If `MAX_SANDBOX_INSTANCES` is set both as an environment variable (`exp
 
 ## 🔒 Security & Privacy
 
-Cloudflare VibeSDK implements enterprise-grade security:
+VibeCode for Startup implements enterprise-grade security:
 
 - 🔐 **Encrypted Secrets**: All API keys stored with Cloudflare encryption
 - 🏰 **Sandboxed Execution**: Generated apps run in completely isolated containers
@@ -375,7 +544,7 @@ Cloudflare VibeSDK implements enterprise-grade security:
 - **With AI Gateway Token**: The deployment script should automatically create the gateway. Check that your token has Read, Edit, and **Run** permissions.
 - **Without AI Gateway Token**: You must manually create an AI Gateway before deployment:
   1. Go to [AI Gateway Dashboard](https://dash.cloudflare.com/ai/ai-gateway)
-  2. Create gateway named `vibesdk-gateway` (or your custom name)
+  2. Create gateway named `vibecodeforstartup-gateway` (or your custom name)
   3. Enable authentication and create a token with **Run** permissions
 
 **🏗️ "Container Instance Type Issues"**
@@ -388,13 +557,13 @@ Cloudflare VibeSDK implements enterprise-grade security:
 
 - 📖 Check [Cloudflare Workers Docs](https://developers.cloudflare.com/workers/)
 - 💬 Join [Cloudflare Discord](https://discord.gg/cloudflaredev)
-- 🐛 Report issues on [GitHub](https://github.com/your-org/cloudflare-vibecoding-starter-kit/issues)
+- 🐛 Report issues on [GitHub](https://github.com/your-org/cloudflare-vibecoding-for-startups-starter-kit/issues)
 
 ---
 
 ## 🤝 Contributing
 
-Want to contribute to Cloudflare VibeSDK? Here's how:
+Want to contribute to VibeCode for Startup? Here's how:
 
 1. **🍴 Fork** via the Deploy button (creates your own instance!)
 2. **💻 Develop** new features or improvements  
@@ -415,7 +584,7 @@ Want to contribute to Cloudflare VibeSDK? Here's how:
 ### 💬 **Community**  
 - [Discord](https://discord.gg/cloudflaredev) - Real-time chat and support
 - [Community Forum](https://community.cloudflare.com/) - Technical discussions
-- [GitHub Discussions](https://github.com/your-org/cloudflare-vibecoding-starter-kit/discussions) - Feature requests and ideas
+- [GitHub Discussions](https://github.com/your-org/cloudflare-vibecoding-for-startups-starter-kit/discussions) - Feature requests and ideas
 
 ### 🎓 **Learning Resources**
 - [Workers Learning Path](https://developers.cloudflare.com/learning-paths/workers/) - Master Workers development

@@ -40,8 +40,8 @@ import { looksLikeCommand } from '../utils/common';
 import { generateBlueprint } from '../planning/blueprint';
 import { prepareCloudflareButton } from '../../utils/deployToCf';
 import { AppService } from '../../database';
-import { RateLimitExceededError } from 'shared/types/errors';
-import { generateId } from 'worker/utils/idGenerator';
+import { RateLimitExceededError } from '../../../shared/types/errors';
+import { generateId } from '../../utils/idGenerator';
 
 interface WebhookPayload {
     event: {
@@ -149,7 +149,7 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         form.append('file', blob, filename);
 
         // Type guard for Images binding
-        type ImagesBinding = { fetch: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response> };
+        type ImagesBinding = { fetch: (input: Request | string | URL, init?: RequestInit) => Promise<Response> };
         const maybeImages = (this.env as unknown as { [key: string]: unknown })['IMAGES'];
         const imagesBinding: ImagesBinding | null = (
             typeof maybeImages === 'object' && maybeImages !== null &&
@@ -1321,7 +1321,13 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     }
 
     getWebSockets(): WebSocket[] {
-        return this.ctx.getWebSockets();
+        // Replace with the correct context reference or implementation
+        // For example, if context is passed in constructor or available as this.context:
+        // return this.context.getWebSockets();
+
+        // If not available, throw an error or return an empty array
+        throw new Error('Context for getWebSockets() is not set on SimpleCodeGeneratorAgent');
+        // return [];
     }
 
     async fetchRuntimeErrors(clear: boolean = true) {

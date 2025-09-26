@@ -1,11 +1,11 @@
-/**
+﻿/**
  * Authentication Modal Provider
- * Provides global authentication modal management
+ * Provides global authentication modal management using Supabase Auth
  */
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
-import { LoginModal } from './login-modal';
-import { useAuth } from '../../contexts/auth-context';
+import { AuthModal } from './auth-modal';
+import { useAuth } from '../../contexts/supabase-auth-context';
 import { setGlobalAuthModalTrigger } from '../../lib/api-client';
 
 interface AuthModalContextType {
@@ -30,13 +30,11 @@ interface AuthModalProviderProps {
 
 export function AuthModalProvider({ children }: AuthModalProviderProps) {
   const [isAuthModalOpen, setIsAuthModalOpen] = useState(false);
-  const [modalContext, setModalContext] = useState<string | undefined>();
   const [pendingAction, setPendingAction] = useState<(() => void) | undefined>();
-  const [intendedUrl, setIntendedUrlState] = useState<string | undefined>();
-  const { login, loginWithEmail, register, error, clearError, isAuthenticated } = useAuth();
+  const [, setIntendedUrlState] = useState<string | undefined>();
+  const { user } = useAuth();
 
-  const showAuthModal = useCallback((context?: string, onSuccess?: () => void, intendedUrl?: string) => {
-    setModalContext(context);
+  const showAuthModal = useCallback((_context?: string, onSuccess?: () => void, intendedUrl?: string) => {
     setPendingAction(onSuccess ? () => onSuccess : undefined);
     setIntendedUrlState(intendedUrl);
     setIsAuthModalOpen(true);
@@ -44,15 +42,13 @@ export function AuthModalProvider({ children }: AuthModalProviderProps) {
 
   const hideAuthModal = useCallback(() => {
     setIsAuthModalOpen(false);
-    setModalContext(undefined);
     setPendingAction(undefined);
     setIntendedUrlState(undefined);
-    clearError();
-  }, [clearError]);
+  }, []);
 
   // Close modal and execute pending action when user becomes authenticated
   useEffect(() => {
-    if (isAuthenticated && isAuthModalOpen) {
+    if (user && isAuthModalOpen) {
       hideAuthModal();
       // Execute the pending action after a brief delay to ensure modal is closed
       if (pendingAction) {
@@ -61,13 +57,7 @@ export function AuthModalProvider({ children }: AuthModalProviderProps) {
         }, 100);
       }
     }
-  }, [isAuthenticated, pendingAction, isAuthModalOpen, hideAuthModal]);
-
-  const handleLogin = useCallback((provider: 'google' | 'github', redirectUrl?: string) => {
-    // Use the intended URL if available, otherwise use the provided redirect URL
-    const finalRedirectUrl = intendedUrl || redirectUrl;
-    login(provider, finalRedirectUrl);
-  }, [login, intendedUrl]);
+  }, [user, pendingAction, isAuthModalOpen, hideAuthModal]);
 
   // Set up global auth modal trigger for API client
   useEffect(() => {
@@ -83,16 +73,9 @@ export function AuthModalProvider({ children }: AuthModalProviderProps) {
   return (
     <AuthModalContext.Provider value={value}>
       {children}
-      <LoginModal
+      <AuthModal
         isOpen={isAuthModalOpen}
         onClose={hideAuthModal}
-        onLogin={login} // Fallback for backward compatibility
-        onOAuthLogin={handleLogin}
-        onEmailLogin={loginWithEmail}
-        onRegister={register}
-        error={error}
-        onClearError={clearError}
-        actionContext={modalContext}
       />
     </AuthModalContext.Provider>
   );

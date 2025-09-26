@@ -1,0 +1,31 @@
+User-agent: *
+Allow: /
+
+# Main pages
+Allow: /pricing
+Allow: /enterprise
+Allow: /resources
+Allow: /learn
+Allow: /discover
+
+# Static assets
+Allow: /assets/
+Allow: /favicon.ico
+Allow: /vite.svg
+
+# Block sensitive areas
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /profile
+Disallow: /settings
+Disallow: /api/
+Disallow: /auth/
+Disallow: /chat/
+Disallow: /app/
+Disallow: /apps/
+
+# Sitemap
+Sitemap: https://vibesdk.com/sitemap.xml
+
+# Crawl delay
+Crawl-delay: 1

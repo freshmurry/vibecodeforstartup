@@ -4,13 +4,11 @@
  */
 
 import { createLogger } from '../../logger';
-import { SecurityError, SecurityErrorType } from 'shared/types/errors';
+import { SecurityError, SecurityErrorType } from '../../../shared/types/errors';
 import { generateSecureToken } from '../../utils/cryptoUtils';
 import { parseCookies, createSecureCookie } from '../../utils/authUtils';
 import { getCSRFConfig } from '../../config/security';
 import { captureSecurityEvent } from '../../observability/sentry';
-import { env } from 'cloudflare:workers'
-
 const logger = createLogger('CsrfService');
 
 interface CSRFTokenData {
@@ -21,7 +19,13 @@ interface CSRFTokenData {
 export class CsrfService {
     static readonly COOKIE_NAME = 'csrf-token';
     static readonly HEADER_NAME = 'X-CSRF-Token';
-    static readonly defaults = getCSRFConfig(env)
+    
+    /**
+     * Get CSRF config for the given environment
+     */
+    private static getConfig(env: Env) {
+        return getCSRFConfig(env);
+    }
     
     /**
      * Generate a cryptographically secure CSRF token
@@ -33,7 +37,8 @@ export class CsrfService {
     /**
      * Set CSRF token cookie with timestamp
      */
-    static setTokenCookie(response: Response, token: string, maxAge: number = 7200): void {
+    static setTokenCookie(response: Response, token: string, env: Env, maxAge?: number): void {
+        const config = this.getConfig(env);
         const tokenData: CSRFTokenData = {
             token,
             timestamp: Date.now()
@@ -43,7 +48,7 @@ export class CsrfService {
             name: this.COOKIE_NAME,
             value: JSON.stringify(tokenData),
             sameSite: 'Strict',
-            maxAge
+            maxAge: maxAge || Math.floor(config.tokenTTL / 1000)
         });
         response.headers.append('Set-Cookie', cookie);
     }
@@ -51,7 +56,8 @@ export class CsrfService {
     /**
      * Extract CSRF token from cookies with validation
      */
-    static getTokenFromCookie(request: Request): string | null {
+    static getTokenFromCookie(request: Request, env: Env): string | null {
+        const config = this.getConfig(env);
         const cookieHeader = request.headers.get('Cookie');
         if (!cookieHeader) return null;
         
@@ -66,10 +72,10 @@ export class CsrfService {
             const now = Date.now();
             const tokenAge = now - tokenData.timestamp;
             
-            if (tokenAge > this.defaults.tokenTTL) {
+            if (tokenAge > config.tokenTTL) {
                 logger.debug('CSRF token expired', {
                     tokenAge,
-                    maxAge: this.defaults.tokenTTL
+                    maxAge: config.tokenTTL
                 });
                 return null;
             }
@@ -96,7 +102,7 @@ export class CsrfService {
     /**
      * Validate CSRF token (double-submit cookie pattern)
      */
-    static validateToken(request: Request): boolean {
+    static validateToken(request: Request, env: Env): boolean {
         const method = request.method.toUpperCase();
         
         // Skip validation for safe methods
@@ -110,7 +116,7 @@ export class CsrfService {
             return true;
         }
         
-        const cookieToken = this.getTokenFromCookie(request);
+        const cookieToken = this.getTokenFromCookie(request, env);
         const headerToken = this.getTokenFromHeader(request);
         
         // Both tokens must exist and match
@@ -170,23 +176,23 @@ export class CsrfService {
      * Middleware to enforce CSRF protection with configuration
      */
     static async enforce(
-        request: Request, 
+        request: Request,
+        env: Env, 
         response?: Response
     ): Promise<void> {
         // Generate and set token for GET requests (to establish cookie)
         if (request.method === 'GET' && response) {
-            const existingToken = this.getTokenFromCookie(request);
+            const existingToken = this.getTokenFromCookie(request, env);
             if (!existingToken) {
                 const newToken = this.generateToken();
-                const maxAge = Math.floor(this.defaults.tokenTTL / 1000);
-                this.setTokenCookie(response, newToken, maxAge);
+                this.setTokenCookie(response, newToken, env);
                 logger.debug('New CSRF token generated for GET request');
             }
             return;
         }
         
         // Validate token for state-changing requests
-        if (!this.validateToken(request)) {
+        if (!this.validateToken(request, env)) {
             throw new SecurityError(
                 SecurityErrorType.CSRF_VIOLATION,
                 'CSRF token validation failed',
@@ -199,7 +205,8 @@ export class CsrfService {
      * Get or generate CSRF token for a request with proper rotation
      */
     static getOrGenerateToken(
-        request: Request, 
+        request: Request,
+        env: Env, 
         forceNew: boolean = false
     ): string {
         if (forceNew) {
@@ -208,7 +215,7 @@ export class CsrfService {
             return newToken;
         }
         
-        const existingToken = this.getTokenFromCookie(request);
+        const existingToken = this.getTokenFromCookie(request, env);
         if (existingToken) {
             logger.debug('Using existing valid CSRF token');
             return existingToken;
@@ -222,11 +229,10 @@ export class CsrfService {
     /**
      * Rotate CSRF token (generate new token and invalidate old one)
      */
-    static rotateToken(response: Response): string {
+    static rotateToken(response: Response, env: Env): string {
         const newToken = this.generateToken();
-        const maxAge = Math.floor(this.defaults.tokenTTL / 1000);
         
-        this.setTokenCookie(response, newToken, maxAge);
+        this.setTokenCookie(response, newToken, env);
         logger.info('CSRF token rotated');
         
         return newToken;

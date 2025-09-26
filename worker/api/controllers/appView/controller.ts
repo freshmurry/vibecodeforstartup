@@ -10,7 +10,8 @@ import {
 } from './types';
 import { AgentSummary } from '../../../agents/core/types';
 import { createLogger } from '../../../logger';
-import { buildUserWorkerUrl } from 'worker/utils/urls';
+import { buildUserWorkerUrl } from '../../../utils/urls';
+
 
 export class AppViewController extends BaseController {
     static logger = createLogger('AppViewController');

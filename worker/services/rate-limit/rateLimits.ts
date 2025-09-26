@@ -5,7 +5,7 @@ import { extractTokenWithMetadata, extractRequestMetadata } from '../../utils/au
 import { captureSecurityEvent } from '../../observability/sentry';
 import { getUserConfigurableSettings } from '../../config';
 import { KVRateLimitStore } from './KVRateLimitStore';
-import { RateLimitExceededError, SecurityError } from 'shared/types/errors';
+import { RateLimitExceededError, SecurityError } from '../../../shared/types/errors';
 
 export class RateLimitService {
     static logger = createObjectLogger(this, 'RateLimitService');

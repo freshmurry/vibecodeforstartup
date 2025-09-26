@@ -34,6 +34,7 @@ import {
   } from './sandboxTypes';
   
   import { createObjectLogger, StructuredLogger } from '../../logger';
+  // @ts-ignore - Cloudflare runtime provides this
   import { env } from 'cloudflare:workers'
   /**
    * Streaming event for enhanced command execution

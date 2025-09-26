@@ -1,14 +1,14 @@
 import { ConversationalResponseType } from "../schemas";
 import { createAssistantMessage, createUserMessage } from "../inferutils/common";
 import { executeInference } from "../inferutils/infer";
-import { getSystemPromptWithProjectContext } from "./common";
+import { getEnhancedSystemPromptWithProjectContext } from "./common";
 import { WebSocketMessageResponses } from "../constants";
 import { WebSocketMessageData } from "../../api/websocketTypes";
 import { AgentOperation, OperationOptions } from "../operations/common";
 import { ConversationMessage } from "../inferutils/common";
 import { StructuredLogger } from "../../logger";
 import { IdGenerator } from "../utils/idGenerator";
-import { RateLimitExceededError, SecurityError } from 'shared/types/errors';
+import { RateLimitExceededError, SecurityError } from '../../../shared/types/errors';
 import { toolWebSearchDefinition } from "../tools/toolkit/web-search";
 import { toolWeatherDefinition } from "../tools/toolkit/weather";
 import { ToolDefinition } from "../tools/types";
@@ -43,7 +43,7 @@ const RelevantProjectUpdateWebsoketMessages = [
 ] as const;
 export type ProjectUpdateType = typeof RelevantProjectUpdateWebsoketMessages[number];
 
-const SYSTEM_PROMPT = `You are an AI assistant for Cloudflare's development platform, helping users build and modify their applications. You have a conversational interface and can help users with their projects.
+const SYSTEM_PROMPT = `You are an AI assistant for Cloudflare's Workers Development Platform, helping users build and modify software applications. You have a conversational interface and can help users with software applications.
 
 ## YOUR CAPABILITIES:
 - You can answer questions about the project and its current state
@@ -86,7 +86,7 @@ You can also execute multiple tools in a sequence, for example, to search the we
 ## Original Project Context:
 {{query}}
 
-Remember: You're here to help users build great applications through natural conversation and the tools at your disposal.`;
+Remember: You're here to help users build enterprise-ready applications through natural conversation and the tools at your disposal.`;
 
 const FALLBACK_USER_RESPONSE = "I understand you'd like to make some changes to your project. Let me make sure this is incorporated in the next phase of development.";
 
@@ -131,7 +131,13 @@ export class UserConversationProcessor extends AgentOperation<UserConversationIn
         });
 
         try {
-            const systemPrompts = getSystemPromptWithProjectContext(SYSTEM_PROMPT, context, false);
+            // Use enhanced system prompt with VibeCoding for Startups startup-focused guidance
+            const systemPrompts = await getEnhancedSystemPromptWithProjectContext(
+                SYSTEM_PROMPT, 
+                context, 
+                false, 
+                'chat'
+            );
             const messages = [...pastMessages, {...createUserMessage(userMessage), conversationId: IdGenerator.generateConversationId()}];
 
             let extractedUserResponse = "";

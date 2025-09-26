@@ -65,7 +65,7 @@ async function handleUserAppRequest(request: Request, env: Env): Promise<Respons
  * Main Worker fetch handler with robust, secure routing.
  */
 const worker = {
-	async fetch(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+	async fetch(request: Request, env: Env, ctx: any): Promise<Response> {
 		// --- Pre-flight Checks ---
 
 		// 1. Critical configuration check: Ensure custom domain is set.
@@ -88,7 +88,9 @@ const worker = {
 
 		// Normalize hostnames for both local development (localhost) and production.
 		const isMainDomainRequest =
-			hostname === env.CUSTOM_DOMAIN || hostname === 'localhost';
+			hostname === env.CUSTOM_DOMAIN || 
+			hostname === 'localhost' ||
+			hostname.endsWith('.workers.dev'); // Support workers.dev subdomain
 		const isSubdomainRequest =
 			hostname.endsWith(`.${previewDomain}`) ||
 			(hostname.endsWith('.localhost') && hostname !== 'localhost');
@@ -112,7 +114,7 @@ const worker = {
 
 		return new Response('Not Found', { status: 404 });
 	},
-} satisfies ExportedHandler<Env>;
+} satisfies any;
 
 // Wrap the entire worker with Sentry for comprehensive error monitoring.
 export default Sentry.withSentry(sentryOptions, worker);

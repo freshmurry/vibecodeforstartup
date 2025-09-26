@@ -1,6 +1,7 @@
 import { SandboxSdkClient } from "./sandboxSdkClient";
 import { RemoteSandboxServiceClient } from "./remoteSandboxService";
 import { BaseSandboxService } from "./BaseSandboxService";
+// @ts-ignore - Cloudflare runtime provides this
 import { env } from 'cloudflare:workers'
 
 export function getSandboxService(sessionId: string, hostname: string): BaseSandboxService {

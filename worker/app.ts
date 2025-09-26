@@ -6,7 +6,7 @@ import { RateLimitService } from './services/rate-limit/rateLimits';
 import { AppEnv } from './types/appenv';
 import { setupRoutes } from './api/routes';
 import { CsrfService } from './services/csrf/CsrfService';
-import { SecurityError, SecurityErrorType } from 'shared/types/errors';
+import { SecurityError, SecurityErrorType } from '../shared/types/errors';
 import { getGlobalConfigurableSettings } from './config';
 import { AuthConfig, setAuthLevel } from './middleware/auth/routeAuth';
 import { initHonoSentry } from './observability/sentry';
@@ -48,14 +48,14 @@ export function createApp(env: Env): Hono<AppEnv> {
                 
                 // Only set CSRF token for successful API responses
                 if (c.req.url.startsWith('/api/') && c.res.status < 400) {
-                    await CsrfService.enforce(c.req.raw, c.res);
+                    await CsrfService.enforce(c.req.raw, c.env, c.res);
                 }
                 
                 return;
             }
             
             // Validate CSRF token for state-changing requests
-            await CsrfService.enforce(c.req.raw, undefined);
+            await CsrfService.enforce(c.req.raw, c.env, undefined);
             await next();
         } catch (error) {
             if (error instanceof SecurityError && error.type === SecurityErrorType.CSRF_VIOLATION) {

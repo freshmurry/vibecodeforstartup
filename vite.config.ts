@@ -2,9 +2,9 @@
 import { defineConfig } from 'vite';
 import react from '@vitejs/plugin-react';
 import svgr from 'vite-plugin-svgr';
-import path from 'path';
+import { fileURLToPath, URL } from 'node:url';
 
-import { cloudflare } from '@cloudflare/vite-plugin';
+// import { cloudflare } from '@cloudflare/vite-plugin';
 import tailwindcss from '@tailwindcss/vite';
 // import { nodePolyfills } from 'vite-plugin-node-polyfills';
 
@@ -28,10 +28,10 @@ export default defineConfig({
 	plugins: [
 		react(),
 		svgr(),
-		cloudflare({
-			configPath: 'wrangler.jsonc',
-			experimental: { remoteBindings: true },
-		}), // Add the node polyfills plugin here
+		// cloudflare({
+		// 	configPath: 'wrangler.jsonc',
+		// 	experimental: { remoteBindings: true },
+		// }), // Add the node polyfills plugin here
 		// nodePolyfills({
 		//     exclude: [
 		//       'tty', // Exclude 'tty' module
@@ -54,9 +54,9 @@ export default defineConfig({
 			// Add this line to fix the 'debug' package issue
 			debug: 'debug/src/browser',
 			// "@": path.resolve(__dirname, "./src"),
-			'@': path.resolve(__dirname, './src'),
-            'shared': path.resolve(__dirname, './shared'),
-            'worker': path.resolve(__dirname, './worker'),
+			'@': fileURLToPath(new URL('./src', import.meta.url)),
+            'shared': fileURLToPath(new URL('./shared', import.meta.url)),
+            'worker': fileURLToPath(new URL('./worker', import.meta.url)),
 		},
 	},
 

@@ -1,15 +1,14 @@
 import { useRef, useState, useEffect, useMemo } from 'react';
 import { ArrowRight } from 'react-feather';
 import { useNavigate } from 'react-router';
+import { PageSEO } from '@/components/seo/PageSEO';
 import {
 	AgentModeToggle,
 	type AgentMode,
 } from '../components/agent-mode-toggle';
-import { useAuthGuard } from '../hooks/useAuthGuard';
 
 export default function Home() {
 	const navigate = useNavigate();
-	const { requireAuth } = useAuthGuard();
 	const textareaRef = useRef<HTMLTextAreaElement>(null);
 	const [agentMode, setAgentMode] = useState<AgentMode>('deterministic');
 	
@@ -24,22 +23,16 @@ export default function Home() {
 	const [isPlaceholderTyping, setIsPlaceholderTyping] = useState(true);
 
 	const handleCreateApp = (query: string, mode: AgentMode) => {
-		const encodedQuery = encodeURIComponent(query);
-		const encodedMode = encodeURIComponent(mode);
-		const intendedUrl = `/chat/new?query=${encodedQuery}&agentMode=${encodedMode}`;
+		// Always redirect to pricing page when user tries to create an app from homepage
+		// Store the original intent in sessionStorage so we can restore it later
+		sessionStorage.setItem('pendingAppCreation', JSON.stringify({
+			query,
+			mode,
+			timestamp: Date.now()
+		}));
 
-		if (
-			!requireAuth({
-				requireFullAuth: true,
-				actionContext: 'to create applications',
-				intendedUrl: intendedUrl,
-			})
-		) {
-			return;
-		}
-
-		// User is already authenticated, navigate immediately
-		navigate(intendedUrl);
+		// Navigate to pricing page with context
+		navigate(`/pricing?from=create&intent=app`);
 	};
 
 	// Auto-resize textarea based on content
@@ -88,7 +81,9 @@ export default function Home() {
 		}
 	}, [currentPlaceholderText, currentPlaceholderPhraseIndex, isPlaceholderTyping, placeholderPhrases]);
 	return (
-		<div className="flex flex-col items-center size-full">
+		<>
+			<PageSEO />
+			<div className="flex flex-col h-full max-w-4xl mx-auto items-center justify-center p-6 w-full relative overflow-hidden">
 			<div className="rounded-md mt-46 w-full max-w-2xl overflow-hidden">
 				<div className="absolute inset-2 bottom-0 text-accent z-0 opacity-20">
 					<svg width="100%" height="100%">
@@ -116,7 +111,7 @@ export default function Home() {
 					</svg>
 				</div>
 				<div className="px-6 p-8 flex flex-col items-center z-10">
-					<h1 className="text-shadow-sm text-shadow-red-200 dark:text-shadow-red-900 text-accent font-medium leading-[1.1] tracking-tight text-6xl w-full mb-4 bg-clip-text bg-gradient-to-r from-text-primary to-text-primary/90">
+					<h1 className="text-shadow-sm text-shadow-red-200 dark:text-shadow-red-900 text-accent font-medium leading-[1.2] tracking-tight text-4xl sm:text-5xl lg:text-6xl w-full mb-4 bg-clip-text bg-gradient-to-r from-text-primary to-text-primary/90 text-center break-words">
 						What should we build today?
 					</h1>
 
@@ -168,5 +163,6 @@ export default function Home() {
 				</div>
 			</div>
 		</div>
+		</>
 	);
 }

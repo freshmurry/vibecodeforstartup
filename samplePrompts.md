@@ -22,3 +22,9 @@ create web-based 3D model viewers for rendering and manipulating 3D assets in re
 Build a full github clone. I should be able to view a repo page, see issues/PRs, navigate to files, also explore new repos, see my open issues/ other use profiles. There should also be a profile page with the timeline for a users changes, and a github like grid with their contributions. Add any other features to make it a complete github clone.
 
 Build a full fledged github clone with all it's functionalities. I should be able to create/edit/commit files, make repos, have organizations, pull requests, issues, proper markdown rendering, code rendering, proper code editor, kanban board, github actions, likes, stars, forks, users, etc.
+
+Create a Airbnb clone. This is a mobile responsive two-sided marketplace application where the users are made up of  hosts and guests. Provide the users the ability to have user profiles, a navbar with bell notifications, chat messages amongst users, a fully functional dashboard with manage lsitings, manage reservations, calendar, settings, payments, and payouts. Allow the ability for host to be paid and host the ability for payouts via Stripe connect and/or PayPal.
+
+Create a fully functional subscription based SaaS knowledge base application with user authenthication, role base access, user settings, manage plan and payments, Q&A Website and Document (upload) knowledge base, AI Assistant with semantic AutoRAG aiSearch ability. This application should route users to the root page with is the home/landing page that is beautifully customized with "How it works" section and footer with fully functional page links. This application should include SEO best practices, a sitmap, and robot.txt files.
+
+Create a fully functional app based on the attached image. Be sure that the outcome is pixel perfect exactly like the image.

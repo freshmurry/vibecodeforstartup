@@ -3,9 +3,9 @@
 declare namespace Cloudflare {
 	interface Env {
 		VibecoderStore: KVNamespace;
-		TEMPLATES_REPOSITORY: "https://github.com/cloudflare/vibesdk-templates";
+		TEMPLATES_REPOSITORY: "https://github.com/cloudflare/vibecodeforstartup-templates";
 		ALLOWED_EMAIL: "";
-		DISPATCH_NAMESPACE: "vibesdk-default-namespace";
+		DISPATCH_NAMESPACE: "vibecodeforstartup-default-namespace";
 		ANTHROPIC_API_KEY: string;
 		OPENAI_API_KEY: string;
 		GOOGLE_AI_STUDIO_API_KEY: string;

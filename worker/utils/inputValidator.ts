@@ -4,7 +4,7 @@
  */
 
 import { z } from 'zod';
-import { SecurityError, SecurityErrorType } from 'shared/types/errors';
+import { SecurityError, SecurityErrorType } from '../../shared/types/errors';
 import { createLogger } from '../logger';
 import { validatePassword, validateEmail, validateUsername } from './validationUtils';
 

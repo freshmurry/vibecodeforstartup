@@ -1,3 +1,120 @@
+export function VibeCodingLogo(props: React.SVGProps<SVGSVGElement> & { showText?: boolean }) {
+	const { showText = true, ...svgProps } = props;
+	
+	if (!showText) {
+		// Return just the icon
+		return (
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 32 32"
+				fill="none"
+				{...svgProps}
+			>
+				<defs>
+					<linearGradient id="vibeCodingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+						<stop offset="0%" style={{ stopColor: '#8B5CF6', stopOpacity: 1 }} />
+						<stop offset="50%" style={{ stopColor: '#06B6D4', stopOpacity: 1 }} />
+						<stop offset="100%" style={{ stopColor: '#10B981', stopOpacity: 1 }} />
+					</linearGradient>
+					<linearGradient id="vibeCodingAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+						<stop offset="0%" style={{ stopColor: '#F59E0B', stopOpacity: 1 }} />
+						<stop offset="100%" style={{ stopColor: '#EF4444', stopOpacity: 1 }} />
+					</linearGradient>
+				</defs>
+				
+				{/* Code brackets */}
+				<path
+					d="M8 10L4 16L8 22"
+					stroke="url(#vibeCodingGradient)"
+					strokeWidth="2.5"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					fill="none"
+				/>
+				<path
+					d="M24 10L28 16L24 22"
+					stroke="url(#vibeCodingGradient)"
+					strokeWidth="2.5"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					fill="none"
+				/>
+				
+				{/* Center slash */}
+				<path
+					d="M18 8L14 24"
+					stroke="url(#vibeCodingAccent)"
+					strokeWidth="2.5"
+					strokeLinecap="round"
+				/>
+			</svg>
+		);
+	}
+
+	// Return the full logo with text
+	return (
+		<div className="flex items-center gap-3">
+			{/* Icon */}
+			<svg
+				xmlns="http://www.w3.org/2000/svg"
+				viewBox="0 0 32 32"
+				fill="none"
+				className="w-8 h-8"
+			>
+				<defs>
+					<linearGradient id="vibeCodingGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+						<stop offset="0%" style={{ stopColor: '#8B5CF6', stopOpacity: 1 }} />
+						<stop offset="50%" style={{ stopColor: '#06B6D4', stopOpacity: 1 }} />
+						<stop offset="100%" style={{ stopColor: '#10B981', stopOpacity: 1 }} />
+					</linearGradient>
+					<linearGradient id="vibeCodingAccent" x1="0%" y1="0%" x2="100%" y2="100%">
+						<stop offset="0%" style={{ stopColor: '#F59E0B', stopOpacity: 1 }} />
+						<stop offset="100%" style={{ stopColor: '#EF4444', stopOpacity: 1 }} />
+					</linearGradient>
+				</defs>
+				
+				{/* Code brackets */}
+				<path
+					d="M8 10L4 16L8 22"
+					stroke="url(#vibeCodingGradient)"
+					strokeWidth="2.5"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					fill="none"
+				/>
+				<path
+					d="M24 10L28 16L24 22"
+					stroke="url(#vibeCodingGradient)"
+					strokeWidth="2.5"
+					strokeLinecap="round"
+					strokeLinejoin="round"
+					fill="none"
+				/>
+				
+				{/* Center slash */}
+				<path
+					d="M18 8L14 24"
+					stroke="url(#vibeCodingAccent)"
+					strokeWidth="2.5"
+					strokeLinecap="round"
+				/>
+			</svg>
+			
+			{/* Text */}
+			<div className="flex items-center gap-2">
+				<span className="text-xl font-bold bg-gradient-to-r from-orange-500 via-purple-500 to-blue-500 bg-clip-text text-transparent">
+					VibeCode
+				</span>
+				<div className="bg-gradient-to-r from-purple-100 to-pink-100 border border-purple-200 rounded-full px-3 py-1">
+					<span className="text-sm font-medium text-purple-600">
+						for Startup
+					</span>
+				</div>
+			</div>
+		</div>
+	);
+}
+
 export function CloudflareLogo(props: React.SVGProps<SVGSVGElement> & { color1?: string, color2?: string}) {
 	return (
 		<svg

@@ -131,9 +131,9 @@ export class GitHubExporterController extends BaseController {
                             repositoryHtmlUrl: createResult.repository.html_url,
                             isPrivate: createResult.repository.private,
                             token: tokenResult.accessToken,
-                            email: 'noreply@vibesdk.com',
-                            username: 'vibesdk-bot',
-                            commitMessage: `Initial commit - Generated app\n\n🤖 Generated with vibesdk\nRepository: ${exportData.repositoryName}`
+                            email: 'noreply@vibecodeforstartup.com',
+                            username: 'vibecodeforstartup-bot',
+                            commitMessage: `Initial commit - Generated app\n\n🤖 Generated with VibeCode for Startup\nRepository: ${exportData.repositoryName}`
                         };
 
                         this.logger.info('Pushing files to repository via agent', {

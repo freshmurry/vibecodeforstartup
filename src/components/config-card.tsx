@@ -125,7 +125,7 @@ export function ConfigCard({
           {/* Current Model */}
           <div className="space-y-2 pl-7 mt-2">
             <div className="flex items-start justify-between gap-2 min-w-0">
-              <span className="text-sm font-medium flex-1 min-w-0 break-words leading-tight" title={modelDisplayName}>
+              <span className="text-sm font-medium flex-1 min-w-0 break-all leading-tight" title={modelDisplayName}>
                 {modelDisplayName}
               </span>
               <Badge 
