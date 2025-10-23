@@ -358,7 +358,7 @@ function DebugPanelCore({ messages, onClear, chatSessionId }: DebugPanelProps) {
       console.error('Error calculating analytics data:', error);
       return null;
     }
-  }, [messages, isOpen, bookmarkedMessages]);
+  }, [messages, isOpen]);
   
   // Timeline data processing - optimized for performance
   const timelineData = useMemo(() => {
@@ -370,7 +370,8 @@ function DebugPanelCore({ messages, onClear, chatSessionId }: DebugPanelProps) {
       console.error('Error processing timeline data:', error);
       return null;
     }
-  }, [messages, isOpen, viewMode, bookmarkedMessages]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [messages, isOpen, viewMode]);
   
   // Smart notifications for critical events
   useEffect(() => {

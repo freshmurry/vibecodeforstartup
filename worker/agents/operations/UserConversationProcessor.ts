@@ -94,6 +94,7 @@ interface EditAppArgs {
     modificationRequest: string;
 }
 
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface EditAppResult {}
 
 export function buildEditAppTool(stateMutator: (modificationRequest: string) => void): ToolDefinition<EditAppArgs, EditAppResult> {

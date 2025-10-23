@@ -37,6 +37,7 @@ export class AiGatewayAnalyticsService {
    * Initialize configuration from environment variables
    */
   private initializeConfig(env: Env): AnalyticsConfig {
+    // eslint-disable-next-line prefer-const
     let config: AnalyticsConfig = {
       accountId: '',
       gateway: '',

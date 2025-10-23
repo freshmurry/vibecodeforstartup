@@ -16,4 +16,5 @@ export type ControllerResponse<T> = Response & {
 /**
  * Type-safe API response interface that ensures data is properly typed
  */
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface ApiResponse<T = unknown> extends BaseApiResponse<T> {}

@@ -1,5 +1,4 @@
 import { StructuredLogger } from '../../logger';
-// @ts-ignore - Cloudflare runtime provides this
 import { env } from 'cloudflare:workers';
 
 export interface ResourceProvisionResult {
