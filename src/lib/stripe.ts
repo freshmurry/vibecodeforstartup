@@ -80,7 +80,7 @@ export const createCheckoutSession = async (params: {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json() as { message?: string };
     throw new Error(error.message || 'Failed to create checkout session');
   }
 
@@ -97,7 +97,7 @@ export const createCustomerPortalSession = async (customerId: string) => {
   });
 
   if (!response.ok) {
-    const error = await response.json();
+    const error = await response.json() as { message?: string };
     throw new Error(error.message || 'Failed to create portal session');
   }
 

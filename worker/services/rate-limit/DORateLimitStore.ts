@@ -1,4 +1,3 @@
-// @ts-ignore - Cloudflare runtime provides this
 import { DurableObject } from 'cloudflare:workers';
 
 export interface RateLimitBucket {

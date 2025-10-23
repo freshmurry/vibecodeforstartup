@@ -154,6 +154,7 @@ export function useChat({
 	};
 
 	// Create the WebSocket message handler
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	const handleWebSocketMessage = useCallback(
 		createWebSocketMessageHandler({
 			// State setters
@@ -322,6 +323,7 @@ export function useChat({
 				handleConnectionFailure(wsUrl, disableGenerate, 'Connection setup failed');
 			}
 		},
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[retryCount, maxRetries, retryTimeouts],
 	);
 
@@ -374,6 +376,7 @@ export function useChat({
 				'WebSocket Resilience'
 			);
 		},
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		[maxRetries, retryCount, retryTimeouts, onDebugMessage, sendMessage],
 	);
 
@@ -518,6 +521,7 @@ export function useChat({
 			}
 		}
 		init();
+	// eslint-disable-next-line react-hooks/exhaustive-deps
 	}, []);
 
     // Mount/unmount: enable/disable reconnection and clear pending retries

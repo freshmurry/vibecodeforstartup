@@ -246,7 +246,7 @@ export default function AppView() {
 			// 	errorMessage: 'Failed to remix app',
 			// },
 		}),
-		[app, navigate],
+		[app],
 	);
 
 	// Reusable authenticated action handler

@@ -69,6 +69,7 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 			
 			// Start loading immediately
 			loadWithRetry(src, 0);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [src]);
 
 		// Handle automatic preview refresh after deployment completion
@@ -90,6 +91,7 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 					loadWithRetry(src, 0);
 				}, 1000);
 			}
+		// eslint-disable-next-line react-hooks/exhaustive-deps
 		}, [shouldRefreshPreview, retryState.hasSucceeded, currentSrc, src]);
 		
 		// Handle manual refresh trigger
@@ -120,7 +122,8 @@ export const SmartPreviewIframe = forwardRef<HTMLIFrameElement, SmartPreviewIfra
 					loadWithRetry(src, 0);
 				}, 100);
 			}
-		}, [manualRefreshTrigger]);
+		// eslint-disable-next-line react-hooks/exhaustive-deps
+		}, [manualRefreshTrigger, src]);
 		
 		const loadWithRetry = (url: string, attempt: number) => {
 			if (attempt >= maxRetries) {

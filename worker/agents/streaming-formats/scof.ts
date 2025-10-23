@@ -4,6 +4,7 @@ import { applyDiff } from '../diff-formats/udiff';
 import { extractCommands } from '../utils/common';
 
 // SCOF-specific parsing state with comprehensive tracking
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 export interface SCOFParsingState extends ParsingState {
 }
 

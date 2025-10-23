@@ -288,6 +288,7 @@ interface RateLimitResult {
 }
 
 // Images binding
+// eslint-disable-next-line @typescript-eslint/no-empty-object-type
 interface ImagesBinding {
   // Add specific methods as needed
 }

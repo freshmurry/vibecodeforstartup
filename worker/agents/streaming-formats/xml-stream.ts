@@ -247,7 +247,7 @@ IMPORTANT:
         }
         
         // Prevent buffer from growing too large
-        if (state.contentBuffer.length > (state as any).maxBufferSize || 10000) {
+        if (state.contentBuffer.length > ((state as any).maxBufferSize || 10000)) {
             // Keep last portion in case we have partial tags
             const keepSize = Math.min(2000, state.contentBuffer.length);
             state.contentBuffer = state.contentBuffer.substring(state.contentBuffer.length - keepSize);
