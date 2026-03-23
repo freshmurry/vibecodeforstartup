@@ -1453,7 +1453,7 @@ class CloudflareDeploymentManager {
 
 		try {
 			// Run build
-			execSync('bun run build', {
+			execSync('npm run build', {
 				stdio: 'inherit',
 				cwd: PROJECT_ROOT,
 			});
