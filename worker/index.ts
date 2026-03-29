@@ -97,14 +97,14 @@ const worker = {
 
 		// Route 1: Main Platform Request (e.g., build.cloudflare.dev or localhost)
 		if (isMainDomainRequest) {
-			// Serve static assets for all non-API routes from the ASSETS binding.
-			if (!pathname.startsWith('/api/')) {
-				return env.ASSETS.fetch(request);
+			if (pathname.startsWith('/api/')) {
+				logger.info(`Handling API request for: ${url}`);
+				const app = createApp(env);
+				return app.fetch(request, env, ctx);
 			}
-			// Handle all API requests with the main Hono application.
-			logger.info(`Handling API request for: ${url}`);
-			const app = createApp(env);
-			return app.fetch(request, env, ctx);
+		
+			// Let Cloudflare handle static assets automatically
+			return new Response('Not Found', { status: 404 });
 		}
 
 		// Route 2: User App Request (e.g., xyz.build.cloudflare.dev or test.localhost)
