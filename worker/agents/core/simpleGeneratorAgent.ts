@@ -93,6 +93,9 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         new StateManager(() => this.state, (s) => this.setState(s)),
     );
 
+    // Explicit declarations to satisfy automatic inference and CI type-check paths.
+    declare protected env: Env;
+
     private previewUrlCache: string = '';
     
     protected operations: Operations = {
