@@ -1,3 +1,6 @@
+/// <reference types="@cloudflare/workers-types" />
+/// <reference path="./worker/types/cloudflare.d.ts" />
+
 // worker-configuration.d.ts
 
 /* eslint-disable */
@@ -6,9 +9,9 @@
 declare namespace Cloudflare {
   interface Env {
     VibecoderStore: KVNamespace;
-    TEMPLATES_REPOSITORY: "https://github.com/cloudflare/vibecodeforstartup-templates";
-    ALLOWED_EMAIL: "";
-    DISPATCH_NAMESPACE: "vibecodeforstartup-default-namespace";
+    TEMPLATES_REPOSITORY: string;
+    ALLOWED_EMAIL: string;
+    DISPATCH_NAMESPACE: string;
     ANTHROPIC_API_KEY: string;
     OPENAI_API_KEY: string;
     GOOGLE_AI_STUDIO_API_KEY: string;
@@ -71,6 +74,7 @@ declare namespace Cloudflare {
 interface Env extends Cloudflare.Env {}
 
 // Utility type for NodeJS process.env
+
 type StringifyValues<EnvType extends Record<string, unknown>> = {
   [Binding in keyof EnvType]: EnvType[Binding] extends string ? EnvType[Binding] : string;
 };
@@ -117,13 +121,49 @@ declare namespace NodeJS {
   >> {}
 }
 
-// ---------- Placeholder interfaces for missing types ----------
-interface RateLimit { 
-  limit(params: { key: string }): Promise<any>; 
+// Optional runtime types that may not be in all Workers type packages
+interface RateLimit {
+  limit(params: { key: string; weight?: number }): Promise<{
+    success: boolean;
+    limit: number;
+    pending: number;
+    reset: string;
+  }>;
 }
 
-interface Ai {}
-interface ImagesBinding {}
-interface WorkerVersionMetadata {}
-interface Fetcher {}
-interface DispatchNamespace {}
+interface Ai {
+  run(model: string, options?: AiOptions): Promise<any>;
+}
+
+interface AiOptions {
+  messages?: AiMessage[];
+  prompt?: string;
+  stream?: boolean;
+  max_tokens?: number;
+  temperature?: number;
+  [key: string]: any;
+}
+
+interface AiMessage {
+  role: string;
+  content: string;
+}
+
+interface ImagesBinding {
+  fetch(input: Request | string | URL, init?: RequestInit): Promise<Response>;
+}
+
+interface WorkerVersionMetadata {
+  commit_hash: string;
+  release_tag?: string;
+  source: string;
+  [key: string]: unknown;
+}
+
+interface Fetcher {
+  fetch(req: Request | string | URL, init?: RequestInit): Promise<Response>;
+}
+
+interface DispatchNamespace {
+  get(name: string): { fetch(request: Request | string | URL): Promise<Response> };
+}

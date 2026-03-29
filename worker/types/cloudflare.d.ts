@@ -3,8 +3,8 @@
  * Provides type definitions for Cloudflare Workers runtime
  */
 
-// Make this a module
-export {};
+// The types in this file are ambient globals used across the repo.
+// (Removing module export to allow global resolution for the build.)
 
 // Base Durable Object class - implementation will be provided by runtime
 declare class DurableObject<Env = any> {

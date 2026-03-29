@@ -93,7 +93,8 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         new StateManager(() => this.state, (s) => this.setState(s)),
     );
 
-    declare protected env: Env;
+    // Inherited from the base Agent/Server/DurableObject chain with Worker env bindings.
+    // No redeclaration needed to avoid TS property overwrite warnings.
 
     private previewUrlCache: string = '';
     
