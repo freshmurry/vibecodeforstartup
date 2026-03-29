@@ -7,7 +7,7 @@ import { AgentConnectionData, AgentPreviewResponse, CodeGenArgs } from './types'
 import { ApiResponse, ControllerResponse } from '../types';
 import { RouteContext } from '../../types/route-context';
 import { ModelConfigService } from '../../../database';
-import { ModelConfig } from '../../../agents/inferutils/config.types';
+import { AgentConfig, AgentActionKey, InferenceContext, ModelConfig } from '../../../agents/inferutils/config.types';
 import { RateLimitService } from '../../../services/rate-limit/rateLimits';
 import { validateWebSocketOrigin } from '../../../middleware/security/websocket';
 import { createLogger } from '../../../logger';
@@ -82,26 +82,35 @@ export class CodingAgentController extends BaseController {
             ]);
                                 
             // Convert Record to Map and extract only ModelConfig properties
-            const userModelConfigs = new Map();
-            for (const [actionKey, mergedConfig] of Object.entries(userConfigsRecord)) {
+            type MergedConfig = {
+                isUserOverride?: boolean;
+                name?: string;
+                max_tokens?: number;
+                temperature?: number;
+                reasoning_effort?: number;
+                fallbackModel?: string;
+            };
+
+            const userModelConfigs: Record<string, ModelConfig> = {};
+            for (const [actionKey, mergedConfig] of Object.entries(userConfigsRecord) as [string, MergedConfig][]) {
                 if (mergedConfig.isUserOverride) {
                     const modelConfig: ModelConfig = {
-                        name: mergedConfig.name,
+                        name: mergedConfig.name || 'disabled',
                         max_tokens: mergedConfig.max_tokens,
                         temperature: mergedConfig.temperature,
-                        reasoning_effort: mergedConfig.reasoning_effort,
+                        reasoning_effort: mergedConfig.reasoning_effort as unknown as any,
                         fallbackModel: mergedConfig.fallbackModel
-                    };
+                    } as ModelConfig;
                     userModelConfigs.set(actionKey, modelConfig);
                 }
             }
 
             const inferenceContext = {
-                userModelConfigs: Object.fromEntries(userModelConfigs),
+                userModelConfigs: Object.fromEntries(userModelConfigs) as unknown as Record<AgentActionKey, ModelConfig>,
                 agentId: agentId,
                 userId: user.id,
                 enableRealtimeCodeFix: true, // For now disabled from the model configs itself
-            }
+            } as InferenceContext;
                                 
             this.logger.info(`Initialized inference context for user ${user.id}`, {
                 modelConfigsCount: Object.keys(userModelConfigs).length,

@@ -38,20 +38,19 @@ export async function timingSafeEqual(a: string, b: string): Promise<boolean> {
     const encoder = new TextEncoder();
     const aBuffer = encoder.encode(a);
     const bBuffer = encoder.encode(b);
-    
-    if (aBuffer.length !== bBuffer.length) {
-        return false;
-    }
-    
-    return crypto.subtle.timingSafeEqual(aBuffer, bBuffer);
+    return timingSafeEqualBytes(aBuffer, bBuffer);
 }
 
 export function timingSafeEqualBytes(a: Uint8Array, b: Uint8Array): boolean {
     if (a.length !== b.length) {
         return false;
     }
-    
-    return crypto.subtle.timingSafeEqual(a, b);
+
+    let diff = 0;
+    for (let i = 0; i < a.length; i++) {
+        diff |= a[i] ^ b[i];
+    }
+    return diff === 0;
 }
 
 export function generateSecureToken(length: number = 32): string {
