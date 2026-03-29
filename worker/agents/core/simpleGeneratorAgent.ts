@@ -93,6 +93,8 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         new StateManager(() => this.state, (s) => this.setState(s)),
     );
 
+    declare protected env: Env;
+
     private previewUrlCache: string = '';
     
     protected operations: Operations = {
@@ -142,7 +144,11 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     }
 
     private async uploadScreenshotToCloudflareImages(base64: string, filename: string): Promise<string> {
-        const url = `https://api.cloudflare.com/client/v4/accounts/${this.env.CLOUDFLARE_ACCOUNT_ID}/images/v1`;
+        const accountId = this.env.CLOUDFLARE_ACCOUNT_ID;
+        if (!accountId) {
+            throw new Error('Cloudflare account ID not configured');
+        }
+        const url = `https://api.cloudflare.com/client/v4/accounts/${accountId}/images/v1`;
         const bytes = this.base64ToUint8Array(base64);
         const blob = new Blob([bytes], { type: 'image/png' });
         const form = new FormData();

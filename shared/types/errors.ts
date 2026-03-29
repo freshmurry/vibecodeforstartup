@@ -1,3 +1,5 @@
+// shared/types/errors.ts
+
 import type { RateLimitError } from "../../worker/services/rate-limit/errors";
 import type { RateLimitType } from "../../worker/services/rate-limit/config";
 

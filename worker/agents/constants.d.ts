@@ -1,0 +1,20 @@
+import { WebSocketMessageType } from "../api/websocketTypes";
+export declare const WebSocketMessageResponses: Record<string, WebSocketMessageType>;
+export declare const WebSocketMessageRequests: {
+    GENERATE_ALL: string;
+    GENERATE: string;
+    CODE_REVIEW: string;
+    DEPLOY: string;
+    PREVIEW: string;
+    OVERWRITE: string;
+    UPDATE_QUERY: string;
+    RUNTIME_ERROR_FOUND: string;
+    PREVIEW_FAILED: string;
+    SCREENSHOT_CAPTURED: string;
+    STOP_GENERATION: string;
+    RESUME_GENERATION: string;
+    GITHUB_EXPORT: string;
+    USER_SUGGESTION: string;
+    GET_MODEL_CONFIGS: string;
+    TERMINAL_COMMAND: string;
+};
