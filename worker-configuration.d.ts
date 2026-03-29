@@ -167,3 +167,73 @@ interface Fetcher {
 interface DispatchNamespace {
   get(name: string): { fetch(request: Request | string | URL): Promise<Response> };
 }
+
+// Cloudflare global type fallbacks for build environments where module shims are missing
+interface DurableObjectState {
+  storage: DurableObjectStorage;
+  id: DurableObjectId;
+  acceptWebSocket(ws: WebSocket, tags?: string[]): void;
+  getWebSockets(tag?: string): WebSocket[];
+  setWebSocketAutoResponse(pair?: WebSocketRequestResponsePair): void;
+  getWebSocketAutoResponse(): WebSocketRequestResponsePair | null;
+  getTags(ws: WebSocket): string[];
+}
+
+type DurableObjectJurisdiction = 'eu' | 'fedramp';
+
+type DurableObjectLocationHint = 'wnam' | 'enam' | 'weur' | 'eeur' | 'apac' | 'oc';
+
+interface DurableObjectId {
+  toString(): string;
+  equals(other: DurableObjectId): boolean;
+  getName(): string | undefined;
+}
+
+interface DurableObjectStub<T = any> {
+  get(id: DurableObjectId | string, options?: { locationHint?: DurableObjectLocationHint }): T;
+  idFromName(name: string): DurableObjectId;
+  idFromString(id: string): DurableObjectId;
+  newUniqueId(options?: { jurisdiction?: DurableObjectJurisdiction }): DurableObjectId;
+  fetch(request: Request): Promise<Response>;
+}
+
+interface DurableObjectNamespace<T = any> {
+  idFromName(name: string): DurableObjectId;
+  idFromString(id: string): DurableObjectId;
+  newUniqueId(options?: { jurisdiction?: DurableObjectJurisdiction }): DurableObjectId;
+  get(id: DurableObjectId | string, options?: { locationHint?: DurableObjectLocationHint }): T;
+}
+
+type AIGatewayProviders = 'openai' | 'anthropic' | 'google' | 'groq' | 'cerebras' | 'openrouter';
+
+// Cloudflare module augmentation for 'cloudflare:workers' & 'partyserver' targets.
+declare module 'cloudflare:workers' {
+  interface DurableObject<Env = unknown> {
+    ctx: DurableObjectState;
+    env: Env;
+  }
+
+  interface DurableObjectNamespace<T = unknown> {
+    idFromName(name: string): DurableObjectId;
+    idFromString(id: string): DurableObjectId;
+    newUniqueId(options?: { jurisdiction?: DurableObjectJurisdiction }): DurableObjectId;
+    get(id: DurableObjectId | string, options?: { locationHint?: DurableObjectLocationHint }): T;
+  }
+
+  interface DurableObjectStub<T = unknown> {
+    get(id: DurableObjectId | string, options?: { locationHint?: DurableObjectLocationHint }): T;
+    idFromName(name: string): DurableObjectId;
+    idFromString(id: string): DurableObjectId;
+    newUniqueId(options?: { jurisdiction?: DurableObjectJurisdiction }): DurableObjectId;
+    fetch(request: Request): Promise<Response>;
+  }
+}
+
+declare global {
+  type HeadersInit = string[][] | Record<string, string> | Headers;
+  interface WebSocketPair {
+    0: WebSocket;
+    1: WebSocket;
+  }
+}
+
