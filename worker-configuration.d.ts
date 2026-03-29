@@ -206,13 +206,6 @@ interface DurableObjectNamespace<T = any> {
 
 type AIGatewayProviders = 'openai' | 'anthropic' | 'google' | 'groq' | 'cerebras' | 'openrouter';
 
-// Define Agent env to avoid `this.env` missing on SimpleCodeGeneratorAgent.
-declare module 'agents' {
-  interface Agent<Env = unknown, State = unknown, Props extends Record<string, unknown> = Record<string, unknown>> {
-    env: Env;
-  }
-}
-
 // Cloudflare module augmentation for 'cloudflare:workers' & 'partyserver' targets.
 declare module 'cloudflare:workers' {
   interface DurableObject<Env = unknown> {

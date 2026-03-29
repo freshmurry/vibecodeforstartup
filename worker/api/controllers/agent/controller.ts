@@ -7,7 +7,7 @@ import { AgentConnectionData, AgentPreviewResponse, CodeGenArgs } from './types'
 import { ApiResponse, ControllerResponse } from '../types';
 import { RouteContext } from '../../types/route-context';
 import { ModelConfigService } from '../../../database';
-import { AgentConfig, AgentActionKey, InferenceContext, ModelConfig } from '../../../agents/inferutils/config.types';
+import { AgentActionKey, InferenceContext, ModelConfig } from '../../../agents/inferutils/config.types';
 import { RateLimitService } from '../../../services/rate-limit/rateLimits';
 import { validateWebSocketOrigin } from '../../../middleware/security/websocket';
 import { createLogger } from '../../../logger';
@@ -91,22 +91,22 @@ export class CodingAgentController extends BaseController {
                 fallbackModel?: string;
             };
 
-            const userModelConfigs: Record<string, ModelConfig> = {};
+            const userModelConfigs: Partial<Record<AgentActionKey, ModelConfig>> = {};
             for (const [actionKey, mergedConfig] of Object.entries(userConfigsRecord) as [string, MergedConfig][]) {
                 if (mergedConfig.isUserOverride) {
                     const modelConfig: ModelConfig = {
                         name: mergedConfig.name || 'disabled',
                         max_tokens: mergedConfig.max_tokens,
                         temperature: mergedConfig.temperature,
-                        reasoning_effort: mergedConfig.reasoning_effort as unknown as any,
+                        reasoning_effort: mergedConfig.reasoning_effort as unknown as ModelConfig['reasoning_effort'],
                         fallbackModel: mergedConfig.fallbackModel
-                    } as ModelConfig;
-                    userModelConfigs.set(actionKey, modelConfig);
+                    };
+                    userModelConfigs[actionKey as AgentActionKey] = modelConfig;
                 }
             }
 
-            const inferenceContext = {
-                userModelConfigs: Object.fromEntries(userModelConfigs) as unknown as Record<AgentActionKey, ModelConfig>,
+            const inferenceContext: InferenceContext = {
+                userModelConfigs: userModelConfigs as Record<AgentActionKey, ModelConfig>,
                 agentId: agentId,
                 userId: user.id,
                 enableRealtimeCodeFix: true, // For now disabled from the model configs itself
