@@ -94,8 +94,6 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     );
 
     // Explicit declarations to satisfy automatic inference and CI type-check paths.
-    declare protected env: Env;
-
     private previewUrlCache: string = '';
     
     protected operations: Operations = {

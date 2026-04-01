@@ -398,13 +398,13 @@ export class SandboxSdkClient extends BaseSandboxService {
                 const dirs = dirSection.split('\n').filter(line => line.trim() && line !== '.');
                 
                 // Create sets for quick lookup
-                const fileSet = new Set(files.map(f => f.startsWith('./') ? f.substring(2) : f));
-                // const dirSet = new Set(dirs.map(d => d.startsWith('./') ? d.substring(2) : d));
+                const fileSet = new Set(files.map((f: string) => f.startsWith('./') ? f.substring(2) : f));
+                // const dirSet = new Set(dirs.map((d: string) => d.startsWith('./') ? d.substring(2) : d));
                 
                 // Combine all paths
-                const allPaths = [...files, ...dirs].map(path => 
+                const allPaths = [...files, ...dirs].map((path: string) => 
                     path.startsWith('./') ? path.substring(2) : path
-                ).filter(path => path && path !== '.');
+                ).filter((path: string) => path && path !== '.');
                 
                 // Build tree with proper file/directory detection
                 const root: FileTreeNode = {
@@ -1191,7 +1191,7 @@ export class SandboxSdkClient extends BaseSandboxService {
                 // Read '.important_files.json' in instance directory
                 const importantFiles = await sandbox.exec(`cd ${templateOrInstanceId} && jq -r '.[]' .important_files.json | while read -r path; do if [ -d "$path" ]; then find "$path" -type f; elif [ -f "$path" ]; then echo "$path"; fi; done`);
                 this.logger.info(`Read important files: stdout: ${importantFiles.stdout}, stderr: ${importantFiles.stderr}`);
-                filePaths = importantFiles.stdout.split('\n').filter(path => path);
+                filePaths = importantFiles.stdout.split('\n').filter((path: string) => path);
                 if (!filePaths) {
                     return {
                         success: false,

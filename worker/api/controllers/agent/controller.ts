@@ -7,6 +7,7 @@ import { AgentConnectionData, AgentPreviewResponse, CodeGenArgs } from './types'
 import { ApiResponse, ControllerResponse } from '../types';
 import { RouteContext } from '../../types/route-context';
 import { ModelConfigService } from '../../../database';
+import type { UserModelConfigWithMetadata } from '../../../database/types';
 import { AgentActionKey, InferenceContext, ModelConfig } from '../../../agents/inferutils/config.types';
 import { RateLimitService } from '../../../services/rate-limit/rateLimits';
 import { validateWebSocketOrigin } from '../../../middleware/security/websocket';
@@ -81,27 +82,17 @@ export class CodingAgentController extends BaseController {
                 getAgentStub(env, agentId, false, this.logger)
             ]);
                                 
-            // Convert Record to Map and extract only ModelConfig properties
-            type MergedConfig = {
-                isUserOverride?: boolean;
-                name?: string;
-                max_tokens?: number;
-                temperature?: number;
-                reasoning_effort?: number;
-                fallbackModel?: string;
-            };
-
             const userModelConfigs: Partial<Record<AgentActionKey, ModelConfig>> = {};
-            for (const [actionKey, mergedConfig] of Object.entries(userConfigsRecord) as [string, MergedConfig][]) {
+            for (const [actionKey, mergedConfig] of Object.entries(userConfigsRecord) as [AgentActionKey, UserModelConfigWithMetadata][]) {
                 if (mergedConfig.isUserOverride) {
                     const modelConfig: ModelConfig = {
                         name: mergedConfig.name || 'disabled',
                         max_tokens: mergedConfig.max_tokens,
                         temperature: mergedConfig.temperature,
-                        reasoning_effort: mergedConfig.reasoning_effort as unknown as ModelConfig['reasoning_effort'],
+                        reasoning_effort: mergedConfig.reasoning_effort,
                         fallbackModel: mergedConfig.fallbackModel
                     };
-                    userModelConfigs[actionKey as AgentActionKey] = modelConfig;
+                    userModelConfigs[actionKey] = modelConfig;
                 }
             }
 

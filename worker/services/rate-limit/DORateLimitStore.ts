@@ -31,6 +31,7 @@ export interface RateLimitResult {
  * similar to the KV implementation but with better scalability, consistency and cost-effectiveness
  */
 export class DORateLimitStore extends DurableObject<Env> {
+    ctx: DurableObjectState;
     private state: RateLimitState = {
         buckets: new Map(),
         lastCleanup: Date.now()
@@ -39,6 +40,7 @@ export class DORateLimitStore extends DurableObject<Env> {
 
     constructor(ctx: DurableObjectState, env: Env) {
         super(ctx, env);
+        this.ctx = ctx;
     }
 
     async increment(key: string, config: RateLimitConfig): Promise<RateLimitResult> {
