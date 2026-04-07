@@ -8,8 +8,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/supabase-auth-context';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/hybrid-auth-context';
+
 import { formatCredits } from '@/utils/credit-system';
 
 // Simple icons (same approach as dashboard)
@@ -89,9 +89,9 @@ export default function AdminDashboard() {
       
       // Fetch stats
       const [usersResponse, subscriptionsResponse, usageResponse] = await Promise.all([
-        supabase.from('profiles').select('*'),
-        supabase.from('subscriptions').select('*').eq('status', 'active'),
-        supabase.from('usage_records').select('credits_used').gte('created_at', new Date().toISOString().split('T')[0])
+        fetch('/api/admin/profiles', { credentials: 'include' }).then(r => r.json()),
+        fetch('/api/admin/subscriptions?status=active', { credentials: 'include' }).then(r => r.json()),
+        fetch('/api/admin/usage?since=' + new Date().toISOString().split('T')[0], { credentials: 'include' }).then(r => r.json())
       ]);
 
       if (usersResponse.error) throw usersResponse.error;
@@ -116,7 +116,11 @@ export default function AdminDashboard() {
       });
 
       // Fetch users with subscriptions
-      const { data: usersWithSubs, error: usersError } = await supabase
+      // Fetching users via worker API
+      const usersRes = await fetch('/api/admin/users', { credentials: 'include' });
+      const { data: usersWithSubs, error: usersError } = await usersRes.json().catch(() => ({ data: null, error: 'fetch failed' }));
+      // Legacy supabase call removed
+      const _unused = await Promise.resolve(null); //was: supabase
         .from('profiles')
         .select(`
           *,
