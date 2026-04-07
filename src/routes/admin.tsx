@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/hybrid-auth-context';
+import { useAuth } from '@/contexts/auth-context';
 
 import { formatCredits } from '@/utils/credit-system';
 
@@ -73,10 +73,10 @@ export default function AdminDashboard() {
   const [searchTerm, setSearchTerm] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
 
   // Check if user is admin
-  const isAdmin = profile?.role === 'admin' || user?.email?.includes('admin');
+  const isAdmin = user?.email?.includes('admin') || (user?.email && user.email === (typeof process !== 'undefined' ? '' : ''));
 
   useEffect(() => {
     if (!isAdmin) return;
