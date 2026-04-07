@@ -8,7 +8,7 @@ import { useState, useCallback } from 'react';
 import { X, Mail, Lock, User, Eye, EyeOff, Github, Chrome, Loader2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
-import { useAuth } from '@/contexts/hybrid-auth-context';
+import { useAuth } from '@/contexts/auth-context';
 import { VibeCodingLogo } from '@/components/icons/logos';
 
 interface AuthModalProps {
