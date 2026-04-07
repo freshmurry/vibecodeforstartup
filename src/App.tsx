@@ -1,6 +1,6 @@
-﻿import { Outlet, useLocation } from "react-router";
+import { Outlet, useLocation } from "react-router";
 import { ThemeProvider } from "./contexts/theme-context";
-import { HybridAuthProvider } from "./contexts/hybrid-auth-context";
+import { AuthProvider } from "./contexts/auth-context";
 import { AuthModalProvider } from "./components/auth/AuthModalProvider";
 import { Toaster } from "./components/ui/sonner";
 import { AppLayout } from "./components/layout/app-layout";
@@ -14,7 +14,7 @@ export default function App() {
   return (
     <ErrorBoundary>
       <ThemeProvider>
-        <HybridAuthProvider>
+        <AuthProvider>
           <AuthModalProvider>
             {useMarketingLayout ? (
               <MarketingLayout>
@@ -27,7 +27,7 @@ export default function App() {
             )}
             <Toaster richColors position="top-right" />
           </AuthModalProvider>
-        </HybridAuthProvider>
+        </AuthProvider>
       </ThemeProvider>
     </ErrorBoundary>
   );
