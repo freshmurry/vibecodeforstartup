@@ -20,35 +20,24 @@ const logger = createLogger('App');
 
 /**
  * Handles requests for user-deployed applications on subdomains.
- * It first attempts to proxy to a live development sandbox. If that fails,
- * it dispatches the request to a permanently deployed worker via namespaces.
- * This function will NOT fall back to the main worker.
- *
- * @param request The incoming Request object.
- * @param env The environment bindings.
- * @returns A Response object from the sandbox, the dispatched worker, or an error.
  */
 async function handleUserAppRequest(request: Request, env: Env): Promise<Response> {
 	const url = new URL(request.url);
 	const { hostname } = url;
 	logger.info(`Handling user app request for: ${hostname}`);
 
-	// 1. Attempt to proxy to a live development sandbox.
-	// proxyToSandbox doesn't consume the request body on a miss, so no clone is needed here.
 	const sandboxResponse = await proxyToSandbox(request, env);
 	if (sandboxResponse) {
 		logger.info(`Serving response from sandbox for: ${hostname}`);
 		return sandboxResponse;
 	}
 
-	// 2. If sandbox misses, attempt to dispatch to a deployed worker.
 	logger.info(`Sandbox miss for ${hostname}, attempting dispatch to permanent worker.`);
 	if (!isDispatcherAvailable(env)) {
 		logger.warn(`Dispatcher not available, cannot serve: ${hostname}`);
 		return new Response('This application is not currently available.', { status: 404 });
 	}
 
-	// Extract the app name (e.g., "xyz" from "xyz.build.cloudflare.dev").
 	const appName = hostname.split('.')[0];
 	const dispatcher = env['DISPATCHER'];
 
@@ -56,64 +45,61 @@ async function handleUserAppRequest(request: Request, env: Env): Promise<Respons
 		const worker = dispatcher.get(appName);
 		return await worker.fetch(request);
 	} catch (error: any) {
-		// This block catches errors if the binding doesn't exist or if worker.fetch() fails.
 		logger.warn(`Error dispatching to worker '${appName}': ${error.message}`);
 		return new Response('An error occurred while loading this application.', { status: 500 });
 	}
 }
 
 /**
- * Main Worker fetch handler with robust, secure routing.
+ * Main Worker fetch handler.
  */
 const worker = {
 	async fetch(request: Request, env: Env, ctx: any): Promise<Response> {
-		// --- Pre-flight Checks ---
-
-		// 1. Critical configuration check: Ensure custom domain is set.
-        const previewDomain = getPreviewDomain(env);
-		if (!previewDomain || previewDomain.trim() === '') {
-			console.error('FATAL: env.CUSTOM_DOMAIN is not configured in wrangler.toml or the Cloudflare dashboard.');
-			return new Response('Server configuration error: Application domain is not set.', { status: 500 });
-		}
-
 		const url = new URL(request.url);
 		const { hostname, pathname } = url;
 
-		// 2. Security: Immediately reject any requests made via an IP address.
+		// Security: Reject IP address requests
 		const ipRegex = /^\d{1,3}\.\d{1,3}\.\d{1,3}\.\d{1,3}$/;
 		if (ipRegex.test(hostname)) {
 			return new Response('Access denied. Please use the assigned domain name.', { status: 403 });
 		}
 
-		// --- Domain-based Routing ---
+		// Determine preview domain — gracefully handle if not configured
+		const previewDomain = getPreviewDomain(env);
 
-		// Normalize hostnames for both local development (localhost) and production.
+		// Domain-based routing
 		const isMainDomainRequest =
-			hostname === env.CUSTOM_DOMAIN || 
+			!previewDomain ||                              // No domain configured → treat as main
+			hostname === env.CUSTOM_DOMAIN ||
 			hostname === 'localhost' ||
-			hostname.endsWith('.workers.dev'); // Support workers.dev subdomain
-		const isSubdomainRequest =
-			hostname.endsWith(`.${previewDomain}`) ||
-			(hostname.endsWith('.localhost') && hostname !== 'localhost');
+			hostname.endsWith('.workers.dev') ||           // Support workers.dev
+			hostname.endsWith('.pages.dev');               // Support pages.dev
 
-		// Route 1: Main Platform Request (e.g., build.cloudflare.dev or localhost)
+		const isSubdomainRequest = previewDomain && (
+			hostname.endsWith(`.${previewDomain}`) ||
+			(hostname.endsWith('.localhost') && hostname !== 'localhost')
+		);
+
+		// Route 1: Main platform — API requests go to Hono, everything else to static assets
 		if (isMainDomainRequest) {
 			if (pathname.startsWith('/api/')) {
-				logger.info(`Handling API request for: ${url}`);
+				logger.info(`Handling API request: ${url}`);
 				const app = createApp(env);
 				return app.fetch(request, env, ctx);
 			}
-		
-			// Let Cloudflare handle static assets automatically
-			return new Response('Not Found', { status: 404 });
+
+			// Serve the React SPA for all non-API requests (including /, /dashboard, etc.)
+			logger.info(`Serving static asset: ${pathname}`);
+			return env.ASSETS.fetch(request);
 		}
 
-		// Route 2: User App Request (e.g., xyz.build.cloudflare.dev or test.localhost)
+		// Route 2: User app subdomain
 		if (isSubdomainRequest) {
 			return handleUserAppRequest(request, env);
 		}
 
-		return new Response('Not Found', { status: 404 });
+		// Fallback: serve assets (handles cases like direct workers.dev access)
+		return env.ASSETS.fetch(request);
 	},
 } satisfies any;
 
