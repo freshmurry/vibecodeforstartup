@@ -41,6 +41,15 @@ interface AuthContextType {
   setIntendedUrl: (url: string) => void;
   getIntendedUrl: () => string | null;
   clearIntendedUrl: () => void;
+
+  // Compatibility aliases
+  signIn: (email: string, password: string) => Promise<void>;
+  signUp: (email: string, password: string, fullName?: string) => Promise<void>;
+  signInWithGoogle: () => Promise<void>;
+  signInWithGithub: () => Promise<void>;
+  signOut: () => Promise<void>;
+  resetPassword: (email: string) => Promise<void>;
+  updatePassword: (password: string) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -305,6 +314,29 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setError(null);
   }, []);
 
+  // Compatibility aliases so hybrid-auth-context consumers work unchanged
+  const signIn = async (email: string, password: string) => loginWithEmail({ email, password });
+  const signUp = async (email: string, password: string, fullName?: string) => register({ email, password, name: fullName });
+  const signInWithGoogle = async () => { login('google'); };
+  const signInWithGithub = async () => { login('github'); };
+  const signOut = logout;
+  const resetPassword = async (email: string) => {
+    await fetch('/api/auth/reset-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ email }),
+    });
+  };
+  const updatePassword = async (password: string) => {
+    await fetch('/api/auth/update-password', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      credentials: 'include',
+      body: JSON.stringify({ password }),
+    });
+  };
+
   const value: AuthContextType = {
     user,
     token,
@@ -324,6 +356,13 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setIntendedUrl,
     getIntendedUrl,
     clearIntendedUrl,
+    signIn,
+    signUp,
+    signInWithGoogle,
+    signInWithGithub,
+    signOut,
+    resetPassword,
+    updatePassword,
   };
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
