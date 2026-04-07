@@ -153,7 +153,15 @@
 		"CLOUDFLARE_AI_GATEWAY": "vibecodeforstartup-gateway",
 		"CUSTOM_DOMAIN": "vibecodeforstartup.com",
 		"MAX_SANDBOX_INSTANCES": "10",
-		"SANDBOX_INSTANCE_TYPE": "standard"
+		"SANDBOX_INSTANCE_TYPE": "standard",
+		// Stripe price IDs — set these to your actual Stripe price IDs from the dashboard
+		"STRIPE_PRO_MONTHLY_PRICE_ID": "",
+		"STRIPE_PRO_ANNUAL_PRICE_ID": "",
+		"STRIPE_TEAM_MONTHLY_PRICE_ID": "",
+		"STRIPE_TEAM_ANNUAL_PRICE_ID": ""
+		// Note: STRIPE_SECRET_KEY and STRIPE_WEBHOOK_SECRET are secrets — set them via:
+		// wrangler secret put STRIPE_SECRET_KEY
+		// wrangler secret put STRIPE_WEBHOOK_SECRET
 	},
 	"workers_dev": true, // Enable workers.dev subdomain as fallback
 	"preview_urls": false
