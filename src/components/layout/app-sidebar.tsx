@@ -30,7 +30,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Input } from '@/components/ui/input';
 import { ScrollArea } from '@/components/ui/scroll-area';
-import { useAuth } from '@/contexts/supabase-auth-context';
+import { useAuth } from '@/contexts/hybrid-auth-context';
 import { useNavigate } from 'react-router';
 import { cn } from '@/lib/utils';
 import {
