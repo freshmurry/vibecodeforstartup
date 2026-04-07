@@ -5,7 +5,7 @@
 
 import React, { createContext, useContext, useState, useCallback, useEffect } from 'react';
 import { AuthModal } from './auth-modal';
-import { useAuth } from '../../contexts/hybrid-auth-context';
+import { useAuth } from '../../contexts/auth-context';
 import { setGlobalAuthModalTrigger } from '../../lib/api-client';
 
 interface AuthModalContextType {
