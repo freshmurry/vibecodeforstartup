@@ -88,7 +88,8 @@ export default function AdminDashboard() {
       setLoading(true);
       
       // Fetch stats
-      const [usersResponse, subscriptionsResponse, usageResponse] = await Promise.all([
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      const [usersResponse, subscriptionsResponse, usageResponse]: [any, any, any] = await Promise.all([
         fetch('/api/admin/profiles', { credentials: 'include' }).then(r => r.json()),
         fetch('/api/admin/subscriptions?status=active', { credentials: 'include' }).then(r => r.json()),
         fetch('/api/admin/usage?since=' + new Date().toISOString().split('T')[0], { credentials: 'include' }).then(r => r.json())
@@ -100,10 +101,10 @@ export default function AdminDashboard() {
 
       const totalUsers = usersResponse.data?.length || 0;
       const activeSubscriptions = subscriptionsResponse.data?.length || 0;
-      const creditsUsedToday = usageResponse.data?.reduce((sum, record) => sum + (record.credits_used || 0), 0) || 0;
+      const creditsUsedToday = (usageResponse.data as any[] | undefined)?.reduce((sum: number, record: any) => sum + (record.credits_used || 0), 0) || 0;
       
       // Calculate revenue (simplified)
-      const totalRevenue = subscriptionsResponse.data?.reduce((sum, sub) => {
+      const totalRevenue = (subscriptionsResponse.data as any[] | undefined)?.reduce((sum: number, sub: any) => {
         const amount = sub.plan_id === 'pro' ? 29.99 : sub.plan_id === 'enterprise' ? 99.99 : 0;
         return sum + amount;
       }, 0) || 0;
@@ -117,7 +118,7 @@ export default function AdminDashboard() {
 
       // Fetch users with subscriptions
       const usersRes = await fetch('/api/admin/users', { credentials: 'include' });
-      const usersJson = await usersRes.json();
+      const usersJson: any = await usersRes.json();
       const usersWithSubs = usersJson.data ?? usersJson ?? [];
       const usersError = usersJson.error ?? null;
 
