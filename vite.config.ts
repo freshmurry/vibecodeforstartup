@@ -22,6 +22,8 @@ export default defineConfig({
 	],
 
 	resolve: {
+		// Dedupe React to ensure only ONE copy is ever bundled
+		dedupe: ['react', 'react-dom', 'react/jsx-runtime'],
 		alias: {
 			debug: 'debug/src/browser',
 			'@': fileURLToPath(new URL('./src', import.meta.url)),
@@ -67,8 +69,14 @@ export default defineConfig({
 					// Radix UI components
 					if (id.includes('@radix-ui')) return 'radix';
 
-					// Core React runtime
-					if (id.includes('node_modules/react/') || id.includes('node_modules/react-dom/')) return 'react';
+					// React core — must come BEFORE vendor catch-all
+					// Keep react/react-dom together so they share the same module instance
+					if (
+						id.includes('node_modules/react/') ||
+						id.includes('node_modules/react-dom/') ||
+						id.includes('node_modules/react-router') ||
+						id.includes('node_modules/scheduler/')
+					) return 'react-core';
 
 					// Everything else in node_modules gets a shared vendor chunk
 					if (id.includes('node_modules')) return 'vendor';
