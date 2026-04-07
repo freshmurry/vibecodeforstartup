@@ -6,7 +6,7 @@ import { useState, useCallback } from 'react';
 import { Check, X, Zap, Users, Building2, Star } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { useAuthModal } from '@/components/auth/AuthModalProvider';
-import { useAuth } from '@/contexts/hybrid-auth-context';
+import { useAuth } from '@/contexts/auth-context';
 import { createCheckoutSession } from '@/lib/stripe';
 
 const PLANS = [
