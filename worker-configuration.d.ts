@@ -45,6 +45,15 @@ declare namespace Cloudflare {
     CF_ACCESS_ID: string;
     CF_ACCESS_SECRET: string;
     SENTRY_DSN: string;
+    WEBHOOK_SECRET: string;
+
+    // Stripe
+    STRIPE_SECRET_KEY: string;
+    STRIPE_WEBHOOK_SECRET: string;
+    STRIPE_PRO_MONTHLY_PRICE_ID: string;
+    STRIPE_PRO_ANNUAL_PRICE_ID: string;
+    STRIPE_TEAM_MONTHLY_PRICE_ID: string;
+    STRIPE_TEAM_ANNUAL_PRICE_ID: string;
 
     // Durable Objects
     CodeGenObject: DurableObjectNamespace<import("./worker/index").CodeGeneratorAgent>;
