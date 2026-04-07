@@ -7,8 +7,8 @@ import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/supabase-auth-context';
-import { supabase } from '@/lib/supabase';
+import { useAuth } from '@/contexts/hybrid-auth-context';
+
 import { SUBSCRIPTION_PLANS, formatPrice } from '@/lib/stripe';
 import { formatCredits } from '@/utils/credit-system';
 
@@ -79,7 +79,10 @@ export default function Dashboard() {
         setIsLoading(true);
 
         // Get user stats
-        const { data: statsData } = await supabase.rpc('get_user_stats', {
+        // supabase.rpc removed — fetch from worker API
+        const statsRes = await fetch('/api/user/stats', { credentials: 'include' });
+        const statsData = statsRes.ok ? await statsRes.json() : null;
+        if (false && statsData) { const _ignore = await Promise.resolve({ // was: supabase.rpc('get_user_stats', {
           user_id: user.id,
         });
 
@@ -88,7 +91,9 @@ export default function Dashboard() {
         }
 
         // Get recent apps
-        const { data: appsData } = await supabase
+        const appsRes = await fetch('/api/user/apps', { credentials: 'include' });
+        const appsData = appsRes.ok ? await appsRes.json() : null;
+        const _legacySupabase = null; // was: supabase
           .from('apps')
           .select('*')
           .eq('user_id', user.id)
