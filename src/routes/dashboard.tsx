@@ -7,7 +7,7 @@ import { Link } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useAuth } from '@/contexts/hybrid-auth-context';
+import { useAuth } from '@/contexts/auth-context';
 
 import { SUBSCRIPTION_PLANS, formatPrice } from '@/lib/stripe';
 import { formatCredits } from '@/utils/credit-system';
@@ -65,7 +65,8 @@ interface DashboardStats {
 }
 
 export default function Dashboard() {
-  const { user, profile } = useAuth();
+  const { user } = useAuth();
+  const [profile, setProfile] = useState<{ plan: string; credits: number; full_name?: string } | null>(null);
   const [stats, setStats] = useState<DashboardStats | null>(null);
   const [recentApps, setRecentApps] = useState<any[]>([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -83,6 +84,20 @@ export default function Dashboard() {
         const statsData = statsRes.ok ? await statsRes.json() : null;
         if (statsData) {
           setStats(statsData);
+        }
+
+        // Get user profile/plan info
+        const profileRes = await fetch('/api/user/profile', { credentials: 'include' });
+        if (profileRes.ok) {
+          const profileData = await profileRes.json();
+          setProfile({
+            plan: profileData.data?.plan || profileData.plan || 'free',
+            credits: profileData.data?.credits || profileData.credits || 0,
+            full_name: profileData.data?.displayName || profileData.data?.full_name || user?.displayName || '',
+          });
+        } else {
+          // Fallback: use user data from auth context
+          setProfile({ plan: 'free', credits: 0, full_name: user?.displayName || '' });
         }
 
         // Get recent apps
