@@ -50,41 +50,24 @@ export default defineConfig({
 	cacheDir: 'node_modules/.vite',
 
 	build: {
-		// Disable sourcemaps in CI — they eat ~800MB of heap on 4500+ modules
 		sourcemap: false,
 
-		// Manual chunk splitting to keep individual chunk sizes manageable
 		rollupOptions: {
 			output: {
 				manualChunks: (id: string) => {
-					// Monaco editor is enormous — isolate it
+					// Monaco editor — isolate it, it's enormous and self-contained
 					if (id.includes('monaco-editor')) return 'monaco';
 
-					// Stripe
+					// Stripe — small, isolated, no React dependency
 					if (id.includes('@stripe')) return 'stripe';
 
-					// Heavy UI / charting libs
-					if (id.includes('recharts') || id.includes('framer-motion')) return 'charts';
-
-					// Radix UI components
-					if (id.includes('@radix-ui')) return 'radix';
-
-					// React core — must come BEFORE vendor catch-all
-					// Keep react/react-dom together so they share the same module instance
-					if (
-						id.includes('node_modules/react/') ||
-						id.includes('node_modules/react-dom/') ||
-						id.includes('node_modules/react-router') ||
-						id.includes('node_modules/scheduler/')
-					) return 'react-core';
-
-					// Everything else in node_modules gets a shared vendor chunk
-					if (id.includes('node_modules')) return 'vendor';
+					// NOTE: Do NOT split react/react-dom/vendor separately.
+					// Doing so creates circular chunk imports → createContext undefined crash.
+					// Let Rollup colocate everything that shares React in one vendor chunk.
 				},
 			},
 		},
 
-		// Give Rollup a reasonable chunk size budget (warn, not fail)
-		chunkSizeWarningLimit: 1000,
+		chunkSizeWarningLimit: 2000,
 	},
 });
