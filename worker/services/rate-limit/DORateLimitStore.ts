@@ -31,6 +31,7 @@ export interface RateLimitResult {
  * similar to the KV implementation but with better scalability, consistency and cost-effectiveness
  */
 export class DORateLimitStore extends DurableObject<Env> {
+    // @ts-ignore - DurableObjectState generic variance issue with Sentry instrumentation
     ctx: DurableObjectState;
     private state: RateLimitState = {
         buckets: new Map(),
