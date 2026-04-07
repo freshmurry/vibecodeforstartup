@@ -81,15 +81,15 @@ export default function Dashboard() {
 
         // Get user stats
         const statsRes = await fetch('/api/user/stats', { credentials: 'include' });
-        const statsData = statsRes.ok ? await statsRes.json() : null;
+        const statsData: any = statsRes.ok ? await statsRes.json() : null;
         if (statsData) {
-          setStats(statsData);
+          setStats(statsData as DashboardStats);
         }
 
         // Get user profile/plan info
         const profileRes = await fetch('/api/user/profile', { credentials: 'include' });
         if (profileRes.ok) {
-          const profileData = await profileRes.json();
+          const profileData: any = await profileRes.json();
           setProfile({
             plan: profileData.data?.plan || profileData.plan || 'free',
             credits: profileData.data?.credits || profileData.credits || 0,
