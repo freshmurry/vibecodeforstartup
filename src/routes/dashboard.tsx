@@ -79,13 +79,8 @@ export default function Dashboard() {
         setIsLoading(true);
 
         // Get user stats
-        // supabase.rpc removed — fetch from worker API
         const statsRes = await fetch('/api/user/stats', { credentials: 'include' });
         const statsData = statsRes.ok ? await statsRes.json() : null;
-        if (false && statsData) { const _ignore = await Promise.resolve({ // was: supabase.rpc('get_user_stats', {
-          user_id: user.id,
-        });
-
         if (statsData) {
           setStats(statsData);
         }
@@ -93,15 +88,8 @@ export default function Dashboard() {
         // Get recent apps
         const appsRes = await fetch('/api/user/apps', { credentials: 'include' });
         const appsData = appsRes.ok ? await appsRes.json() : null;
-        const _legacySupabase = null; // was: supabase
-          .from('apps')
-          .select('*')
-          .eq('user_id', user.id)
-          .order('updated_at', { ascending: false })
-          .limit(5);
-
         if (appsData) {
-          setRecentApps(appsData);
+          setRecentApps(Array.isArray(appsData) ? appsData : appsData.data ?? []);
         }
       } catch (error) {
         console.error('Error loading dashboard data:', error);
