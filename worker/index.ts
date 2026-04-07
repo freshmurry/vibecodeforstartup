@@ -12,6 +12,7 @@ import { getPreviewDomain } from './utils/urls';
 export { UserAppSandboxService, DeployerService } from './services/sandbox/sandboxSdkClient';
 
 export const CodeGeneratorAgent = Sentry.instrumentDurableObjectWithSentry(sentryOptions, SmartCodeGeneratorAgent);
+// @ts-ignore - Sentry DO instrumentation generic mismatch, safe to ignore
 export const DORateLimitStore = Sentry.instrumentDurableObjectWithSentry(sentryOptions, BaseDORateLimitStore);
 
 // Logger for the main application and handlers
