@@ -102,7 +102,7 @@ export default function Dashboard() {
 
         // Get recent apps
         const appsRes = await fetch('/api/user/apps', { credentials: 'include' });
-        const appsData = appsRes.ok ? await appsRes.json() : null;
+        const appsData: any = appsRes.ok ? await appsRes.json() : null;
         if (appsData) {
           setRecentApps(Array.isArray(appsData) ? appsData : appsData.data ?? []);
         }
