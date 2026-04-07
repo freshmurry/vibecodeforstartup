@@ -1,9 +1,9 @@
-import { Link, useSearchParams } from 'react-router';
+import { useSearchParams } from 'react-router';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
-import { useState, useEffect, useCallback } from 'react';
-import { Check, X, Zap, Users, Building2, Infinity as InfinityIcon, Star } from 'lucide-react';
+import { useState, useCallback } from 'react';
+import { Check, X, Zap, Users, Building2, Star } from 'lucide-react';
 import { PageSEO } from '@/components/seo/PageSEO';
 import { useAuthModal } from '@/components/auth/AuthModalProvider';
 import { useAuth } from '@/contexts/hybrid-auth-context';
@@ -31,8 +31,8 @@ const PLANS = [
 		],
 		limitations: ['No custom domains', 'No priority support', '1 GB storage'],
 		cta: 'Get Started Free',
-		monthlyPriceId: null,
-		annualPriceId: null,
+		monthlyPriceId: null as string | null,
+		annualPriceId: null as string | null,
 	},
 	{
 		id: 'pro',
@@ -41,7 +41,7 @@ const PLANS = [
 		annualPrice: 23,
 		period: 'per month',
 		credits: 500,
-		maxApps: null,
+		maxApps: null as number | null,
 		description: 'For serious builders who ship fast.',
 		popular: true,
 		icon: Star,
@@ -58,8 +58,8 @@ const PLANS = [
 		],
 		limitations: ['No phone support'],
 		cta: 'Start Pro',
-		monthlyPriceId: import.meta.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID ?? '',
-		annualPriceId: import.meta.env.VITE_STRIPE_PRO_ANNUAL_PRICE_ID ?? '',
+		monthlyPriceId: (import.meta.env.VITE_STRIPE_PRO_MONTHLY_PRICE_ID ?? '') as string,
+		annualPriceId: (import.meta.env.VITE_STRIPE_PRO_ANNUAL_PRICE_ID ?? '') as string,
 	},
 	{
 		id: 'team',
@@ -68,7 +68,7 @@ const PLANS = [
 		annualPrice: 79,
 		period: 'per month',
 		credits: 2000,
-		maxApps: null,
+		maxApps: null as number | null,
 		description: 'For growing teams and agencies.',
 		popular: false,
 		icon: Users,
@@ -85,17 +85,17 @@ const PLANS = [
 		],
 		limitations: [],
 		cta: 'Start Team Plan',
-		monthlyPriceId: import.meta.env.VITE_STRIPE_TEAM_MONTHLY_PRICE_ID ?? '',
-		annualPriceId: import.meta.env.VITE_STRIPE_TEAM_ANNUAL_PRICE_ID ?? '',
+		monthlyPriceId: (import.meta.env.VITE_STRIPE_TEAM_MONTHLY_PRICE_ID ?? '') as string,
+		annualPriceId: (import.meta.env.VITE_STRIPE_TEAM_ANNUAL_PRICE_ID ?? '') as string,
 	},
 	{
 		id: 'enterprise',
 		name: 'Enterprise',
-		monthlyPrice: null,
-		annualPrice: null,
+		monthlyPrice: null as number | null,
+		annualPrice: null as number | null,
 		period: 'tailored pricing',
-		credits: null,
-		maxApps: null,
+		credits: null as number | null,
+		maxApps: null as number | null,
 		description: 'Custom infrastructure, SLAs, and dedicated support.',
 		popular: false,
 		icon: Building2,
@@ -113,8 +113,8 @@ const PLANS = [
 		],
 		limitations: [],
 		cta: 'Contact Sales',
-		monthlyPriceId: null,
-		annualPriceId: null,
+		monthlyPriceId: null as string | null,
+		annualPriceId: null as string | null,
 	},
 ];
 
@@ -137,26 +137,28 @@ const FAQ = [
 	},
 ];
 
+type Plan = typeof PLANS[0];
+
 export default function Pricing() {
 	const [isAnnual, setIsAnnual] = useState(false);
 	const [loadingPlanId, setLoadingPlanId] = useState<string | null>(null);
 	const [searchParams] = useSearchParams();
-	const { openAuthModal } = useAuthModal();
+	const { showAuthModal } = useAuthModal();
 	const { user, isLoading: authLoading } = useAuth();
 
 	const highlightPlan = searchParams.get('highlight');
 
-	const handlePlanClick = useCallback(async (plan: typeof PLANS[0]) => {
+	const handlePlanClick = useCallback(async (plan: Plan) => {
 		if (plan.id === 'enterprise') {
 			window.location.href = 'mailto:hello@vibecodeforstartup.com?subject=Enterprise Inquiry';
 			return;
 		}
 		if (plan.id === 'free') {
-			if (!user) openAuthModal('signup');
+			if (!user) showAuthModal('Sign up to start building for free');
 			return;
 		}
 		if (!user) {
-			openAuthModal('signup', `Sign up to start your ${plan.name} plan`);
+			showAuthModal(`Sign up to start your ${plan.name} plan`);
 			return;
 		}
 
@@ -165,18 +167,18 @@ export default function Pricing() {
 
 		try {
 			setLoadingPlanId(plan.id);
-			const { url } = await createCheckoutSession({
+			const result = await createCheckoutSession({
 				priceId,
 				userId: user.id,
 				email: user.email,
-			});
-			if (url) window.location.href = url;
+			}) as { url?: string; sessionId?: string };
+			if (result.url) window.location.href = result.url;
 		} catch (err) {
 			console.error('Checkout error:', err);
 		} finally {
 			setLoadingPlanId(null);
 		}
-	}, [user, isAnnual, openAuthModal]);
+	}, [user, isAnnual, showAuthModal]);
 
 	return (
 		<>
@@ -298,7 +300,7 @@ export default function Pricing() {
 													</>
 												) : (
 													<>
-														<InfinityIcon className="w-3.5 h-3.5 text-brand" />
+														<Zap className="w-3.5 h-3.5 text-brand" />
 														<span>Unlimited credits</span>
 													</>
 												)}
