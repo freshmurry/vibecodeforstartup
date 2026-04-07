@@ -10,7 +10,8 @@ import { AuthConfig, setAuthLevel } from '../../middleware/auth/routeAuth';
 import Stripe from 'stripe';
 
 function getStripe(env: Env): Stripe {
-	return new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-01-27.acacia' });
+	// stripe@18.x uses API version "2025-08-27.basil"
+	return new Stripe(env.STRIPE_SECRET_KEY, { apiVersion: '2025-08-27.basil' });
 }
 
 /** Returns true if this user is the platform owner — bypasses all subscription checks */
@@ -84,8 +85,8 @@ export function setupStripeRoutes(app: Hono<AppEnv>): void {
 				status: 'active',
 				plan: 'owner',
 				planName: 'Owner (Complimentary)',
-				credits: Infinity,
-				maxApps: Infinity,
+				credits: 999999,
+				maxApps: 999999,
 				isOwner: true,
 			});
 		}
@@ -123,13 +124,13 @@ export function setupStripeRoutes(app: Hono<AppEnv>): void {
 
 		// Map price IDs to plan metadata
 		const planMap: Record<string, { plan: string; planName: string; credits: number; maxApps: number }> = {
-			[c.env.STRIPE_PRO_MONTHLY_PRICE_ID ?? '']: { plan: 'pro', planName: 'Pro', credits: 500, maxApps: Infinity },
-			[c.env.STRIPE_PRO_ANNUAL_PRICE_ID ?? '']: { plan: 'pro', planName: 'Pro (Annual)', credits: 500, maxApps: Infinity },
-			[c.env.STRIPE_TEAM_MONTHLY_PRICE_ID ?? '']: { plan: 'team', planName: 'Team', credits: 2000, maxApps: Infinity },
-			[c.env.STRIPE_TEAM_ANNUAL_PRICE_ID ?? '']: { plan: 'team', planName: 'Team (Annual)', credits: 2000, maxApps: Infinity },
+			[c.env.STRIPE_PRO_MONTHLY_PRICE_ID ?? '']: { plan: 'pro', planName: 'Pro', credits: 500, maxApps: 99999 },
+			[c.env.STRIPE_PRO_ANNUAL_PRICE_ID ?? '']: { plan: 'pro', planName: 'Pro (Annual)', credits: 500, maxApps: 99999 },
+			[c.env.STRIPE_TEAM_MONTHLY_PRICE_ID ?? '']: { plan: 'team', planName: 'Team', credits: 2000, maxApps: 99999 },
+			[c.env.STRIPE_TEAM_ANNUAL_PRICE_ID ?? '']: { plan: 'team', planName: 'Team (Annual)', credits: 2000, maxApps: 99999 },
 		};
 
-		const planMeta = planMap[priceId] ?? { plan: 'pro', planName: 'Pro', credits: 500, maxApps: Infinity };
+		const planMeta = planMap[priceId] ?? { plan: 'pro', planName: 'Pro', credits: 500, maxApps: 99999 };
 
 		return c.json({
 			status: sub.status,
@@ -153,17 +154,14 @@ export function setupStripeRoutes(app: Hono<AppEnv>): void {
 		let event: Stripe.Event;
 		try {
 			event = await stripe.webhooks.constructEventAsync(rawBody, sig, c.env.STRIPE_WEBHOOK_SECRET ?? '');
-		} catch (err) {
-			return c.json({ error: `Webhook signature verification failed` }, 400);
+		} catch {
+			return c.json({ error: 'Webhook signature verification failed' }, 400);
 		}
 
-		// Handle relevant events
 		switch (event.type) {
 			case 'customer.subscription.created':
 			case 'customer.subscription.updated':
 			case 'customer.subscription.deleted': {
-				// Subscriptions are looked up live via Stripe API on each request
-				// KV or D1 caching can be added here for high-traffic scenarios
 				console.log(`Stripe subscription event: ${event.type}`, event.data.object);
 				break;
 			}
