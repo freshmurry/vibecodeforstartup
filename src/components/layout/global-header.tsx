@@ -2,7 +2,7 @@ import { SidebarTrigger } from '@/components/ui/sidebar';
 import { AuthButton } from '../auth/auth-button';
 import { ThemeToggle } from '../theme-toggle';
 import { motion } from 'framer-motion';
-import { useAuth } from '@/contexts/supabase-auth-context';
+import { useAuth } from '@/contexts/hybrid-auth-context';
 
 export function GlobalHeader() {
 	const { user } = useAuth();
