@@ -10,6 +10,7 @@ import { setupGitHubExporterRoutes } from './githubExporterRoutes';
 import { setupCodegenRoutes } from './codegenRoutes';
 import { setupScreenshotRoutes } from './screenshotRoutes';
 import { setupSentryRoutes } from './sentryRoutes';
+import { setupStripeRoutes } from './stripeRoutes';
 import { Hono } from "hono";
 import { AppEnv } from "../../types/appenv";
 
@@ -54,4 +55,7 @@ export function setupRoutes(app: Hono<AppEnv>): void {
 
     // Screenshot serving routes (public)
     setupScreenshotRoutes(app);
+
+    // Stripe subscription and payment routes
+    setupStripeRoutes(app);
 }
