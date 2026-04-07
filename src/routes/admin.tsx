@@ -116,19 +116,10 @@ export default function AdminDashboard() {
       });
 
       // Fetch users with subscriptions
-      // Fetching users via worker API
       const usersRes = await fetch('/api/admin/users', { credentials: 'include' });
-      const { data: usersWithSubs, error: usersError } = await usersRes.json().catch(() => ({ data: null, error: 'fetch failed' }));
-      // Legacy supabase call removed
-      const _unused = await Promise.resolve(null); //was: supabase
-        .from('profiles')
-        .select(`
-          *,
-          subscriptions (*),
-          usage_records (*)
-        `)
-        .order('created_at', { ascending: false })
-        .limit(50);
+      const usersJson = await usersRes.json();
+      const usersWithSubs = usersJson.data ?? usersJson ?? [];
+      const usersError = usersJson.error ?? null;
 
       if (usersError) throw usersError;
       setUsers(usersWithSubs || []);
