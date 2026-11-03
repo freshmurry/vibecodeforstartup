@@ -18,4 +18,4 @@ monetized with AdSense slots and an admin-managed affiliate tools directory.
   deploy steps, and honest gaps.
 
 Dev: `npm install && npm test && npx wrangler dev` ·
-Seed data lives in `src/feeds.js`; schema in `migrations/`.
+Seed data lives in `src/feeds.js`; schema in `db-migrations/`.

@@ -1,5 +1,9 @@
 # vibecodeforstartup — affiliate + AdSense content aggregation app
 # Branch: pivot/affiliate-aggregator (the app-builder build stays untouched on main)
+# NOTE: this branch inherits main's tree, including the builder's wrangler.jsonc.
+# Always pass this config explicitly on this branch:  wrangler ... -c wrangler.toml
+# Aggregator migrations live in db-migrations/ (NOT migrations/, which holds
+# the builder's drizzle migrations).
 name = "vibecodeforstartup"
 main = "src/index.js"
 compatibility_date = "2025-06-01"
@@ -17,7 +21,7 @@ compatibility_flags = ["nodejs_compat"]
 binding = "DB"
 database_name = "vibecodeforstartup-agg"
 database_id = "00000000-0000-0000-0000-000000000000"
-migrations_dir = "migrations"
+migrations_dir = "db-migrations"
 
 # Workers AI — used ONLY to refine categorization when keyword rules are
 # inconclusive, behind a hard per-run + per-day call budget (see src/agent.js).

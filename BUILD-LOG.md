@@ -3,8 +3,16 @@
 Date: 2026-11-03 · Branch: `pivot/affiliate-aggregator` · Status: **built, tested, and running on a labeled preview deployment; production deploy pending Lawrence's Cloudflare account steps (below).**
 
 > **Main is untouched.** The cost-hardened app-builder build remains on `main`
-> exactly as delivered 2026-11-02. This branch is a separate root for the new
-> app; merging/replacing is Lawrence's call after he reviews the preview.
+> exactly as delivered 2026-11-02. This branch was created from `main`, so it
+> inherits the builder's tree; the aggregator is additive at the root
+> (`src/*.js`, `wrangler.toml`, `db-migrations/`, `tests/`) with `package.json`,
+> `README.md`, and this log replaced. **On this branch always pass the config
+> explicitly — `wrangler ... -c wrangler.toml`** — because the builder's
+> `wrangler.jsonc` also exists in the tree, and aggregator migrations live in
+> `db-migrations/` (the `migrations/` folder holds the builder's drizzle
+> migrations; do not apply them to the aggregator database). Stripping the
+> legacy builder files off this branch is a follow-up cleanup for when
+> Lawrence confirms the pivot deploy.
 
 ---
 
@@ -153,11 +161,12 @@ account) is unaffected.
 
 1. From an authenticated checkout (the GitHub-connected Workers Builds flow
    used for aria-agent, or `wrangler login`):
-   - `wrangler d1 create vibecodeforstartup-agg`
+   - `wrangler d1 create vibecodeforstartup-agg -c wrangler.toml`
    - Put the returned database ID into `wrangler.toml` (replacing the
      all-zero placeholder — it fails closed by design until then).
-   - `npm install && wrangler d1 migrations apply vibecodeforstartup-agg --remote`
-   - `wrangler deploy` (or connect this branch in Workers Builds).
+   - `npm install && npm run db:remote` (applies `db-migrations/` only)
+   - `npm run deploy` (or connect this branch in Workers Builds — set the
+     deploy command to `wrangler deploy -c wrangler.toml`).
 2. Confirm `ADSENSE_PUB_ID` in `wrangler.toml` matches the AdSense account;
    after creating ad units in AdSense, set `ADSENSE_SLOTS` (e.g.
    `header:1234567890,sidebar:1234567891`) and redeploy to activate real ads.
