@@ -1,0 +1,59 @@
+# vibecodeforstartup — affiliate + AdSense content aggregation app
+# Branch: pivot/affiliate-aggregator (the app-builder build stays untouched on main)
+name = "vibecodeforstartup"
+main = "src/index.js"
+compatibility_date = "2025-06-01"
+compatibility_flags = ["nodejs_compat"]
+
+# ---------------------------------------------------------------------------
+# Bindings
+# ---------------------------------------------------------------------------
+# D1 — items, feeds, runs, users, sessions, affiliate offers.
+# PRODUCTION: replace database_id with the real ID after
+#   wrangler d1 create vibecodeforstartup-agg
+# The all-zero placeholder fails closed (queries error) rather than ever
+# binding the wrong database. Local dev uses a local D1 automatically.
+[[d1_databases]]
+binding = "DB"
+database_name = "vibecodeforstartup-agg"
+database_id = "00000000-0000-0000-0000-000000000000"
+migrations_dir = "migrations"
+
+# Workers AI — used ONLY to refine categorization when keyword rules are
+# inconclusive, behind a hard per-run + per-day call budget (see src/agent.js).
+[ai]
+binding = "AI"
+
+# AggregatorAgent — official Cloudflare Agents SDK Durable Object.
+[durable_objects]
+bindings = [
+  { name = "AggregatorAgent", class_name = "AggregatorAgent" }
+]
+
+[[migrations]]
+tag = "v1"
+new_sqlite_classes = ["AggregatorAgent"]
+
+# Belt-and-braces schedule: the agent ALSO keeps its own Agents-SDK cron
+# schedule; runAggregation() skips non-manual triggers that arrive within
+# 30 minutes of the previous run, so the two can never double-process.
+[triggers]
+crons = ["17 */6 * * *"]
+
+# ---------------------------------------------------------------------------
+# Vars (non-secret config; secrets go through `wrangler secret put`)
+# ---------------------------------------------------------------------------
+[vars]
+SITE_NAME = "VibeCode Intel"
+SITE_URL = "https://vibecodeforstartup.com"
+# AdSense publisher ID from Lawrence's account records (approved 2026-10-31).
+# CONFIRM this still matches the AdSense account before production launch.
+ADSENSE_PUB_ID = "pub-8786200479780334"
+# Comma-separated slot IDs to activate real ad units, e.g. "header:123,mid:456".
+# Empty = slots render as clearly labeled placeholders (no ad code emitted).
+ADSENSE_SLOTS = ""
+# Categorization budgets (Workers AI calls).
+AI_MAX_CALLS_PER_RUN = "20"
+AI_MAX_CALLS_PER_DAY = "200"
+# Comma-separated emails that are admins in addition to the first account.
+ADMIN_EMAILS = ""

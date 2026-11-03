@@ -1,273 +1,194 @@
-# BUILD LOG — vibecodeforstartup end-to-end repair + cost hardening
+# BUILD LOG — vibecodeforstartup PIVOT: affiliate + AdSense content aggregator
 
-Date: 2026-11-02/03 · Branch: `main` ·  Status: **code complete, locally smoke-tested; production deploy pending account authentication (see "Deploy blockers")**
+Date: 2026-11-03 · Branch: `pivot/affiliate-aggregator` · Status: **built, tested, and running on a labeled preview deployment; production deploy pending Lawrence's Cloudflare account steps (below).**
 
-> GitHub sync note: the substantive files (all modifications + new files,
-> including this log) were pushed via the GitHub MCP `push_files` tool.
-> The 427 stale-duplicate deletions exist in the local commit but
-> could not be pushed from the build VM (no git HTTPS credentials; SSH is
-> proxy-blocked; the MCP path cannot express bulk deletions). One
-> `git push origin main` from any authenticated checkout syncs them.
+> **Main is untouched.** The cost-hardened app-builder build remains on `main`
+> exactly as delivered 2026-11-02. This branch is a separate root for the new
+> app; merging/replacing is Lawrence's call after he reviews the preview.
 
 ---
 
-## 1. What was broken in the VibeSDK wiring, and what fixed it
+## 1. What this app is
 
-The app is Cloudflare's VibeSDK platform (React SPA + Hono Worker, D1/Drizzle,
-R2, KV, Sandbox containers, Durable Object coding agent). Generation existed,
-but a generated app could never become a reachable, listed product:
+An agent-native content aggregation site for vibecoding, AI agents, machine
+learning, AGI, superintelligence, AI research, and AI services:
 
-1. **The deploy path was amputated.** The Workers-for-Platforms dispatch
-   namespace binding was commented out in `wrangler.jsonc`, the
-   `DISPATCH_NAMESPACE` var was commented out, and the Sandbox SDK deploy
-   path throws when that var is absent. The containers block and the
-   `UserAppSandboxService` Durable Object binding were also commented out,
-   so template loading / preview builds had no sandbox either.
-2. **There was nowhere for a live URL to live.** The `apps` table had no
-   `deployment_url` or slug column at all — a deployment URL existed only
-   transiently in a websocket message, never persisted, never listed.
-3. **Asset shadowing.** `assets.run_worker_first` was `false`, so on app
-   subdomains any path colliding with a platform file (`/`, `/assets/*`)
-   was served the *platform's* SPA instead of the user's app. Verified
-   locally and fixed (`run_worker_first: true`; the worker's fetch handler
-   already delegates main-domain page loads to `ASSETS`).
-4. **Stale script config.** `package.json` db scripts targeted a database
-   named `vibesdk-db` (upstream leftover); the real D1 is
-   `vibecodeforstartup-db`. Fixed.
-5. **Dual database story.** Supabase schema/client files sat beside the D1
-   implementation. Quarantined to `docs/legacy/` (schema, JS client, types,
-   setup docs). D1 is now the single database story; verified zero imports
-   of the Supabase client remain in `src/`. (The `SUPABASE_*` entries in
-   `worker/types/secretsTemplates.ts` are secret templates for
-   *user-generated* apps — a product feature, deliberately kept.)
-6. **Compiled duplicates.** 428 stale compiled `.js`/`.d.ts` files sat next
-   to their `.ts`/`.tsx` sources and shadowed them. Removed (the
-   `container/` copies were restored — the Sandbox image compiles both
-   forms itself via `bun run build`).
-7. **`index.html` title was literally "Build"** with no description. Fixed
-   and rebuilt into `dist/`.
+- **AggregatorAgent** (official Cloudflare Agents SDK, `agents` package) runs
+  the whole operation: on its own recurring cron schedule (every 6 hours at
+  :17 UTC) and on demand from the admin, it fetches every enabled RSS/Atom
+  feed, dedupes against D1, categorizes, and stores items.
+- **Copyright-safe by design.** An item is only: title, source name, original
+  URL, published date, and an excerpt of **at most 280 characters taken from
+  the feed's own summary field**. Full article text is never fetched or
+  stored. Every card links out to the original publisher. Verified against
+  production data: `MAX(LENGTH(excerpt)) = 279`.
+- **Categorization** is deterministic keyword rules first (always available).
+  Workers AI (`@cf/meta/llama-3.1-8b-instruct`) refines only items the rules
+  cannot place, behind hard budgets (default 20 calls/run, 200/day, max 6 per
+  invocation chunk), and only for genuinely new items (dedupe runs first).
+  AI failure or absence never blocks a run.
+- **Runs are chunked** (3 feeds per invocation + scheduled continuation) with
+  batched D1 writes and one existence query per feed, keeping every
+  invocation far below the Workers subrequest limit (50 Free / 1,000 Paid).
+  This design was forced by a real failure: the first version hit "Too many
+  subrequests" on the free preview; the chunked version completes all feeds.
+  A wrangler cron trigger also pokes the agent as belt-and-braces; the
+  agent's 30-minute overlap guard prevents double-processing.
+- **Public site** (server-rendered, mobile-first): home (latest + last-72h
+  "trending" — recency-windowed; no engagement data exists, so nothing fakes
+  it), 7 topic hubs, search, source directory, sitemap.xml, robots.txt,
+  Open Graph + JSON-LD (WebSite/SearchAction, CollectionPage/ItemList).
+- **Monetization wiring:**
+  - *AdSense* — `/ads.txt` serves `google.com, pub-8786200479780334, DIRECT,
+    f08c47fec0942fa0`. Slot components are wired to the `ADSENSE_SLOTS` var
+    (`name:slotid,...`): with no slot IDs configured they render clearly
+    labeled placeholders and emit **no ad code**; set slot IDs and the real
+    `<ins class="adsbygoogle">` markup + loader script activate.
+    **⚠️ Lawrence: confirm pub-8786200479780334 still matches your AdSense
+    account before production launch** (taken from your records, approved
+    2026-10-31).
+  - *Affiliate* — admin-managed `offers` table rendered on `/tools` and
+    contextually on matching topic pages, always with FTC disclosure text
+    and `rel="sponsored"`. A full `/disclosure` page is included. The seed
+    rows are **inactive, clearly-named PLACEHOLDER rows pointing at
+    example.com** — they render nowhere and claim no program membership.
+    Replace them with real affiliate links (programs you have actually
+    joined) in the admin and activate.
+- **Admin** (`/admin`): PBKDF2 + D1 sessions (aria-agent house pattern),
+  first registered account becomes admin and registration then closes.
+  Dashboard shows last run, per-feed errors, items/feed totals, next
+  scheduled run, and a "Run aggregation now" action; feeds can be
+  added/disabled/deleted; offers managed; run logs kept.
 
-## 2. Architecture decision: why apps are NOT deployed via Workers for Platforms
+## 2. Feed verification (2026-11-03, every seed feed fetched and parsed)
 
-Researched against current Cloudflare docs (2026-11-02):
+**Live and seeded (28 feeds)** — all returned HTTP 200 with parseable
+RSS/Atom in verification and again in the live aggregation runs:
 
-- **Workers for Platforms is a separate $25/month plan.** It is *not*
-  included in the $5 Workers Paid plan. The task constraint was "no plan
-  upgrades, no paid spend," so WfP cannot be enabled on this account.
-- **Containers ARE included in Workers Paid** (25 GiB-hours memory,
-  375 vCPU-minutes, 200 GB-hours disk per month included).
-
-So the platform now runs in two serving modes (`APP_SERVING_MODE`):
-
-### `static` (default, active)
-Prompt → agent generates the app (sandbox session, as upstream) → on
-Publish/Deploy, the agent's file tree is pulled from its Durable Object,
-**transpiled in-worker with Sucrase** (types stripped, JSX → automatic
-React runtime, Vite-style specifiers rewritten: extensionless relative
-imports gain `.js`, CSS imports become `<link>` tags, asset imports become
-URL constants, `import.meta.env` shimmed), bare imports are resolved via
-an **import map to esm.sh** (versions pinned from the app's own
-`package.json`), Tailwind apps get the Play CDN, and everything is written
-to **R2** under `apps/<slug>/`. The main worker serves
-`https://<slug>.vibecodeforstartup.com` from R2 with SPA fallback, a
-restrictive CSP, per-app metering and caps. **No user code ever executes
-on this account** — the browser runs the app; libraries load from
-esm.sh's CDN, not from Cloudflare billing.
-
-New pieces: `worker/services/publish/publish.ts`,
-`SimpleCodeGeneratorAgent.getFilesForPublish()` + `publishStaticApp()`,
-`POST /api/agent/:agentId/publish`, `apps.slug` + `apps.deployment_url`
-columns (migration `0003_guardrails.sql`), the `APPS_BUCKET` R2 binding,
-and a wildcard zone route `*.vibecodeforstartup.com/*`.
-
-### `wfp` (optional, fully wired but disabled)
-The original sandbox → dispatch-namespace path is preserved intact behind
-`APP_SERVING_MODE=wfp`. `wrangler.jsonc` documents the exact enablement
-steps (subscribe to WfP, `wrangler dispatch-namespace create
-vibecodeforstartup-default-namespace`, uncomment the binding + var, set
-`CLOUDFLARE_ACCOUNT_ID`/`CLOUDFLARE_API_TOKEN` worker secrets, flip the
-mode). Flipping it on is a billing decision for the account owner.
-
-### Generation sessions (containers, downsized)
-Containers are re-enabled for generation/preview sessions only, at the
-smallest size: `instance_type: "basic"` (¼ vCPU, 1 GiB), `max_instances: 3`,
-`MAX_SANDBOX_INSTANCES=3`, `SANDBOX_INSTANCE_TYPE=basic`.
-
-## 3. Cost guardrails (the core of this build)
-
-All enforcement is server-side, in `worker/services/guardrails/guardrails.ts`,
-metered into the D1 `usage_events` table. Caps resolve
-`system_settings` (runtime-editable) → `GUARDRAIL_*` env vars → defaults.
-
-| Guardrail | Default cap | Enforced where |
+| Source | Type | Default topic |
 |---|---|---|
-| Authentication required | always | `POST /api/agent` is `authenticated`; publish is `ownerOnly` + ownership check. Registration is additionally restricted to `ALLOWED_EMAIL` (single-operator instance as configured upstream) |
-| User daily generations | **2 / user / UTC day** | `startCodeGeneration`, *before* template/sandbox/AI work |
-| Global daily generations | **5 / day** | same |
-| User max apps | **5** | same (counts `apps` rows) |
-| Global AI calls / day | **1,500** | `executeInference` — the single funnel for every AI call |
-| Per-session AI calls | **300** | same (runaway-agent brake) |
-| Global deployed apps | **25** | publish/deploy path |
-| Per-app requests | **5,000 / app / day** | subdomain serving |
-| Global app requests | **50,000 / day** | subdomain serving |
-| Sandbox footprint | 3 × basic (¼ vCPU / 1 GiB) | `wrangler.jsonc` containers + vars |
-| Kill switch | `generation_enabled=false` in D1 **or** `GENERATION_KILL_SWITCH=1` env | checked in generation, inference, preview, and deploy paths |
-| Fail closed | metering read/write failure ⇒ **503, work refused** | `getConfig()`/`record()` throw; callers refuse |
+| OpenAI News | lab | ai-research |
+| Google DeepMind Blog | lab | ai-research |
+| Google AI Blog | lab | ai-research |
+| Microsoft Research | lab | ai-research |
+| Meta Engineering | lab | machine-learning |
+| Hugging Face Blog | lab | machine-learning |
+| arXiv cs.AI / cs.CL / cs.LG / cs.NE (export API, Atom) | research | varies |
+| Cloudflare Blog | ecosystem | ai-agents |
+| GitHub Blog | ecosystem | vibecoding |
+| LangChain Blog (www.langchain.com/blog/rss.xml) | ecosystem | ai-agents |
+| Vercel Blog | ecosystem | vibecoding |
+| Simon Willison's Weblog | ecosystem | ai-agents |
+| Latent Space (latent.space/feed) | ecosystem | ai-agents |
+| Import AI | ecosystem | superintelligence |
+| The Sequence | ecosystem | machine-learning |
+| Thoughtworks Insights (thoughtworks.com/rss/insights.xml) | services | ai-services |
+| AWS Machine Learning Blog | services | ai-services |
+| AI Trends | services | ai-services |
+| NVIDIA Blog | news | machine-learning |
+| InfoQ | news | vibecoding |
+| The New Stack | news | vibecoding |
+| IEEE Spectrum | news | ai-research |
+| MarkTechPost | news | machine-learning |
+| Unite.AI | news | machine-learning |
+| BDTechTalks | news | ai-research |
 
-Existing DO/KV rate limiting (`RateLimitService` + unsafe ratelimit
-bindings, 1000/min) still applies on top — note it *fails open* on binding
-errors by upstream design; the guardrails above are the fail-closed layer.
+**Dropped or flagged during verification (not seeded):**
 
-**Worst-case math vs. the $5 plan's included amounts**
-- Containers: 5 generations/day × ~8 min awake on basic = ~20 GiB-hrs
-  memory (< 25 included), ~300 vCPU-min (< 375), ~80 GB-hrs disk (< 200).
-- App traffic: 50,000 requests/day ≈ 1.5M/mo worker requests (< 10M
-  included); R2 reads are Class B (1M/mo free tier inside paid plans is
-  separate — R2 has no per-request charge beyond its own included amounts;
-  see residual risks).
-- D1 metering writes: ≤ ~52k/day worst case (< 50M rows written/mo incl.).
-- AI tokens are billed by the *AI providers* (OpenAI etc.), not Cloudflare;
-  the 1,500 calls/day global cap is the hard bound on that spend.
+| Candidate | Finding |
+|---|---|
+| Anthropic | No working RSS found (`/news/rss.xml` and `/rss.xml` → 404). Biggest single gap; add from admin if they publish one. |
+| Meta AI Blog | `ai.meta.com/blog/rss/` verified 200 at first check, then 404 (all variants) the same day — publisher removed it. Meta Engineering retained. |
+| LlamaIndex Blog | Verified 200 at first check, then all feed paths 404 the same day. Removed; re-add from admin if restored. |
+| LangChain (old URL) | `blog.langchain.com/rss/` now redirects to the HTML blog index; the live feed is `www.langchain.com/blog/rss.xml` — seeded at the corrected URL. |
+| arXiv RSS (rss.arxiv.org) | Valid but returns an **empty channel outside announcement windows**; switched to the always-populated export.arxiv.org Atom API. |
+| EPAM, Slalom, Accenture, McKinsey | No public RSS located at any tested URL (404 / non-feed responses). Professional-services coverage currently rests on Thoughtworks + AWS ML Blog + AI Trends. |
+| MIT Technology Review, O'Reilly Radar, ZDNet AI, VentureBeat AI, Distill, ACM Queue | Did not return usable feed XML in verification (blocked, dead, or non-feed responses). |
+| Unite.AI | Seeded and working (25 items in run 2) but returned an origin-side HTTP 520 in later runs — transient publisher error; the agent logs it and retries next run. |
 
-**Admin surface**
-- `GET /api/admin/usage` — owner-email only (`ALLOWED_EMAIL`): live cap
-  config, today/month totals by kind, top users today, deployed-app count.
-- `PUT /api/admin/guardrails` — owner-only; body `{key, value}` updates one
-  cap in `system_settings` (e.g. the kill switch), effective immediately,
-  no deploy needed.
+## 3. Verification evidence (preview deployment)
 
-## 4. Stripe state (names only — values are secrets, never read)
+Preview: **https://vibecodeforstartup.ring-pleasure.workers.dev**
+(wrangler `--temporary` preview account — NOT Lawrence's account; expires if
+unclaimed; the wrangler cron trigger cannot register on the free preview
+account, which is why the agent's own Agents-SDK schedule is primary — it
+registered fine and shows on the dashboard.)
 
-- Implemented: checkout session creation, customer portal, subscription
-  lookup, and a **signature-verified** webhook (`constructEventAsync` with
-  `STRIPE_WEBHOOK_SECRET`) in `worker/api/routes/stripeRoutes.ts`.
-- Config presence: `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET` are worker
-  **secrets** (set via `wrangler secret put`, not in the repo — presence on
-  the account cannot be verified without account auth).
-- `STRIPE_PRO_MONTHLY_PRICE_ID`, `STRIPE_PRO_ANNUAL_PRICE_ID`,
-  `STRIPE_TEAM_MONTHLY_PRICE_ID`, `STRIPE_TEAM_ANNUAL_PRICE_ID` vars exist
-  in `wrangler.jsonc` but are **empty strings** — checkout cannot succeed
-  until real price IDs are set.
-- **Test vs. live cannot be determined from the repo** — it depends on
-  which key mode the secrets hold. Verify in the Stripe dashboard before
-  taking money.
+Real aggregation passes against the live feeds (remote D1 on the preview):
 
-## 5. Smoke-test evidence (local, `wrangler dev` + `wrangler.local.jsonc`)
+| Run | Trigger | Feeds OK | Failed | Seen | New | AI calls |
+|---|---|---|---|---|---|---|
+| 1 (pre-chunking build) | manual | 1 | 29 | 30 | 30 | 10 |
+| 2 (chunked) | manual | 18 | 12 | 404 | 374 | 20 |
+| 3 (dedupe-first + fixes) | manual | 21 | 8 | 468 | 89 | 20 |
+| 4 (arXiv API + chunk AI caps) | manual | 27 | 1 | 618 | 134 | 20 |
+| 5 (dedupe proof, immediate re-run) | manual | 27 | 1 | 618 | **0** | — |
 
-Local emulation only (see blockers): all 4 migrations apply cleanly
-including `0003_guardrails.sql` (seeds verified in `system_settings`;
-`apps.slug`/`deployment_url` columns present).
+Final state: **627 items** across 27 sources (Unite.AI's 520 is the only
+failing feed — origin-side, previously successful). Categories: vibecoding
+122, machine-learning 95, ai-agents 73, ai-research 66, ai-services 31,
+superintelligence 13, agi 4 (counts from run 3 snapshot; grew after).
 
-- `GET /api/health` → `{"status":"ok"}`
-- Unauthenticated `POST /api/agent` → blocked (403 CSRF / 401 without
-  session); unauthenticated `GET /api/admin/usage` → **401**
-- Register (whitelisted email) → session JWT cookie issued; admin usage →
-  200 with the exact cap table above
-- Generation attempt ×2 → guardrail **recorded** both in `usage_events`,
-  then failed downstream at template fetch ("Failed to fetch templates
-  from sandbox service") because no sandbox exists in local emulation —
-  the gate order (auth → rate limit → guardrail → record → work) is proven
-- Generation attempt ×3 → **HTTP 429** "Daily generation limit reached
-  (2 per user per day)"
-- Kill switch via admin API (`generation_enabled=false`) → generation →
-  **HTTP 503** "Generation is currently disabled by the platform
-  operator." Restored to `true`
-- Env kill switch (second instance, `GENERATION_KILL_SWITCH=1`) →
-  generation → **HTTP 503** (takes precedence over quota)
-- Publish pipeline unit tests (`worker/services/publish/publish.test.ts`,
-  `npx vitest run --config vitest.publish.config.ts`): **4/4 pass** —
-  TSX transpile, `.js` import rewriting, importmap with versions pinned
-  from the fixture's own `package.json` (react@19.1.1,
-  lucide-react@0.541.0), CSS `<link>` + Tailwind CDN injection, R2 keys,
-  D1 deployment update, refusal when no `index.html`
-- Serving: fixture app seeded to local R2 + D1 → `GET
-  http://fixture-app-12345678.localhost/` → **200** with the fixture HTML
-  and JS asset served as `application/javascript`; unknown slug → **404**;
-  requests metered as `app_request` in `usage_events`
-- Request cap: with `app_daily_request_cap` set to the already-metered
-  count (3) → next request **HTTP 429** "This app has reached its daily
-  traffic limit." Restored to 5000 → **200** again
-- Gallery: `GET /api/apps` lists the published app with `slug` +
-  `deploymentUrl`
-- Admin usage totals after the run: `generation: 2`, `app_request: 4`,
-  `deployedApps: 1` — matches the actions taken
-- `npx tsc -b` → clean; `vite build` → succeeds, `dist/index.html` carries
-  the new title
+Unit/integration tests: **15 passed / 0 failed** (`npm test`) — RSS + Atom
+parsing, entity/CDATA handling, canonical-URL dedupe equivalence, title
+hashing, 280-char excerpt cap, rule categorization + fallback,
+AI-output sanitization, taxonomy completeness, ads.txt generation,
+sitemap/robots contents, PBKDF2 round-trip. The tests caught one real bug
+(entity-decode order eating `<Guide>` in titles) before deploy.
 
-**Final shipped state: generation ENABLED, all caps at the defaults in
-the table above, kill switch OFF.** Switch locations: D1
-`system_settings` key `guardrails.generation_enabled` (admin API or SQL),
-or the `GENERATION_KILL_SWITCH` var in `wrangler.jsonc`.
+Also verified live on the preview: `/`, all topic pages, `/search`,
+`/sources`, `/tools`, `/disclosure`, `/about`, `/sitemap.xml`, `/robots.txt`,
+`/ads.txt`, `/health` all return 200; anonymous `/admin` and `/admin/feeds`
+redirect to login (auth boundary); dashboard shows agent state + registered
+cron schedule; admin register/login/logout round-trip works.
 
-## 6. Deploy blockers (what stands between this code and the live URL)
+Local note: `wrangler dev` on this VM cannot make outbound HTTPS calls
+(the sandbox's TLS egress interception breaks workerd fetches — "TLS
+handshake failed"), so local passes fail every feed with internal errors.
+This is an environment limitation, not an app bug: the identical code
+completes 27/28 feeds on the real Cloudflare network. Production (Lawrence's
+account) is unaffected.
 
-Deployment from the build VM is **blocked on account authentication** —
-this is the one step that needs Lawrence (or the parent agent) in a
-browser:
+## 4. Production deploy steps (Lawrence's account)
 
-1. `npx wrangler login` (or provide a `CLOUDFLARE_API_TOKEN` via the
-   secure credential flow). `wrangler whoami` currently returns
-   "You are not authenticated", and there is no Cloudflare connector.
-2. One-time resource creation:
-   - `npx wrangler r2 bucket create vibecodeforstartup-apps`
-   - `npx wrangler d1 migrations apply vibecodeforstartup-db --remote`
-   - Add the wildcard DNS record in the `vibecodeforstartup.com` zone:
-     `*` → AAAA `100::` (proxied) so `*.vibecodeforstartup.com` resolves
-3. Build the sandbox image once (needs Docker, absent on this VM — build
-   happens automatically via Cloudflare Containers on first deploy from
-   an authenticated machine, or run `npm run deploy` which uses
-   `scripts/deploy.ts` + `.prod.vars`):
-   - `npm run deploy` (sets secrets from `.prod.vars`, deploys, migrates)
-4. Set the four `STRIPE_*_PRICE_ID` vars + confirm Stripe secret mode
-   (test vs live) before enabling paid plans.
-5. Set at least one AI provider key as a worker secret
-   (`OPENAI_API_KEY` etc.) — real generation cannot run without one.
+1. From an authenticated checkout (the GitHub-connected Workers Builds flow
+   used for aria-agent, or `wrangler login`):
+   - `wrangler d1 create vibecodeforstartup-agg`
+   - Put the returned database ID into `wrangler.toml` (replacing the
+     all-zero placeholder — it fails closed by design until then).
+   - `npm install && wrangler d1 migrations apply vibecodeforstartup-agg --remote`
+   - `wrangler deploy` (or connect this branch in Workers Builds).
+2. Confirm `ADSENSE_PUB_ID` in `wrangler.toml` matches the AdSense account;
+   after creating ad units in AdSense, set `ADSENSE_SLOTS` (e.g.
+   `header:1234567890,sidebar:1234567891`) and redeploy to activate real ads.
+3. Connect the domain: Cloudflare dashboard → Workers → `vibecodeforstartup`
+   → Settings → Domains & Routes → add `vibecodeforstartup.com` (and `www`
+   if desired). The domain's DNS is already on Cloudflare. Set `SITE_URL`
+   accordingly (already `https://vibecodeforstartup.com`).
+4. Open `https://vibecodeforstartup.com/admin/register` and create the first
+   admin account immediately (registration closes once it exists). Trigger
+   "Run aggregation now" to populate; the agent then self-schedules every
+   6 hours.
+5. In `/admin/offers`, replace the three PLACEHOLDER rows with real affiliate
+   links for programs actually joined, and activate them.
+6. Nothing to buy: no Workers for Platforms, no new plan. D1 + Workers AI
+   usage at this scale sits inside the existing paid plan's included
+   amounts; AI spend is hard-capped by the run/day budgets above.
 
-Alternative deploy path already used by Lawrence's other apps: connect
-the repo in **Workers Builds** (git-connected deploys) with the build
-command `npm run build` and deploy command `npx wrangler deploy`, after
-steps 2–3 are done once.
+## 5. Honest gaps / not built
 
-## 7. Honest residual risks
-
-- **Static mode is not full Vite.** Generated apps with server-side code,
-  exotic Vite plugins, `import.meta.glob`, or binary assets imported from
-  `src/` will degrade (images may 404; the app still runs). The standard
-  template output (client SPA + Tailwind + lucide) is covered and tested.
-  Apps that truly need a backend Worker require WfP mode ($25/mo decision).
-- **Workers AI neuron metering** (if Workers AI models are selected) is
-  billed per neuron past a 10,000/day allotment and cannot be perfectly
-  bounded by call counts — the 1,500-call/day cap bounds it to a small,
-  known worst case, but it is not zero.
-- **R2 / D1 overage**: caps keep projected usage inside included amounts
-  with margin, but Cloudflare bills overages rather than hard-stopping;
-  the caps are enforced in *our* code, so a code bug is the failure mode.
-  The fail-closed design (refuse when metering is broken) is the
-  mitigation. Watch `GET /api/admin/usage` after launch.
-- **Registration is owner-only** (`ALLOWED_EMAIL` gate in the upstream
-  auth controller). Public sign-ups require removing that gate — a
-  product decision, intentionally left as-is for cost safety.
-- **`npm test` harness is broken upstream**: `vitest.config.ts` points at
-  `wrangler.test.jsonc` and `test/setup.ts`, neither of which exists in
-  the repo. The publish tests ship with their own
-  `vitest.publish.config.ts` (node pool) and pass under it.
-- **`wrangler types` drift**: `worker-configuration.d.ts` was hand-extended
-  for the new bindings/vars; re-running `npm run cf-typegen` will
-  regenerate it (keep the additions).
-- **Drizzle snapshot**: migration `0003_guardrails.sql` was hand-written;
-  run `npm run db:generate` before creating the next drizzle migration so
-  the journal/snapshot include the guardrail tables and app columns.
-- A cosmetic "Supabase fallback" comment remains in
-  `src/components/auth/auth-modal.tsx` (comment only; no code path).
-
-## 8. Files of interest
-
-- `worker/services/guardrails/guardrails.ts` — caps, kill switch, metering
-- `worker/services/publish/publish.ts` — static publishing pipeline
-- `migrations/0003_guardrails.sql` — usage_events, cap seeds, app columns
-- `worker/api/controllers/admin/adminController.ts` +
-  `worker/api/routes/adminRoutes.ts` — usage view + cap editing
-- `wrangler.jsonc` — production config (containers downsized, APPS_BUCKET,
-  wildcard route, documented WfP block, guardrail vars)
-- `wrangler.local.jsonc` — local smoke-test config (dummy secrets only)
-- `docs/legacy/` — quarantined Supabase artifacts
+- No Anthropic feed (none exists publicly) and thin professional-services
+  coverage (3 feeds) — the white-paper angle depends on firms that mostly
+  don't publish RSS; the admin accepts new feeds in seconds when found.
+- "Trending" is a recency window (last 72h), not engagement-ranked — the
+  site collects no engagement data yet.
+- AdSense units are wired but inactive until Lawrence supplies slot IDs;
+  affiliate offers are placeholders until he supplies real links. Revenue
+  today: $0 (nothing is faked).
+- Search is SQL `LIKE` over titles/excerpts — adequate at this scale;
+  a Vectorize/AI-Search upgrade is future work, not present.
+- Item retention is unbounded (one row per story, ~600/run-day max adds
+  a few hundred rows/day worst case) — a pruning job (e.g. keep 180 days)
+  is a sensible follow-up, not yet implemented.
+- The preview deployment lives on a temporary account and will expire;
+  production needs the steps in §4.
