@@ -11,6 +11,7 @@ import { setupCodegenRoutes } from './codegenRoutes';
 import { setupScreenshotRoutes } from './screenshotRoutes';
 import { setupSentryRoutes } from './sentryRoutes';
 import { setupStripeRoutes } from './stripeRoutes';
+import { setupAdminRoutes } from './adminRoutes';
 import { Hono } from "hono";
 import { AppEnv } from "../../types/appenv";
 
@@ -58,4 +59,7 @@ export function setupRoutes(app: Hono<AppEnv>): void {
 
     // Stripe subscription and payment routes
     setupStripeRoutes(app);
+
+    // Admin usage + guardrails routes
+    setupAdminRoutes(app);
 }

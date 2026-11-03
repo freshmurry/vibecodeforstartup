@@ -17,8 +17,11 @@
 	"assets": {
 		"directory": "dist",
 		"not_found_handling": "single-page-application",
-		// "run_worker_first": ["!/src/*", "!/api/docs/*"],
-		"run_worker_first": false,
+		// run_worker_first MUST stay true: published apps are served by the
+		// worker from R2 on subdomains, and asset-first serving would shadow
+		// subdomain paths that collide with platform files (/, /assets/*).
+		// The worker fetch handler delegates main-domain page loads to ASSETS.
+		"run_worker_first": true,
 		"binding": "ASSETS"
 	},
 	"observability": {
@@ -60,7 +63,20 @@
 	"images": {
 		"binding": "IMAGES"
 	},
-	// Temporarily commented out dispatch namespaces (requires Workers for Platforms plan)
+	// ---------------------------------------------------------------------
+	// Workers for Platforms (OPTIONAL — not enabled).
+	// WfP is a SEPARATE $25/mo plan; it is NOT included in the $5 Workers
+	// Paid plan, so generated apps are published as static sites from R2
+	// instead (APP_SERVING_MODE=static, see worker/services/publish).
+	// To enable WfP mode later, ALL of these steps are required:
+	//   1. Subscribe to Workers for Platforms on the account.
+	//   2. npx wrangler dispatch-namespace create vibecodeforstartup-default-namespace
+	//   3. Uncomment the dispatch_namespaces block below.
+	//   4. Uncomment the DISPATCH_NAMESPACE var in "vars".
+	//   5. Set worker secrets CLOUDFLARE_ACCOUNT_ID + CLOUDFLARE_API_TOKEN
+	//      (token needs Workers Scripts: Edit on the dispatch namespace).
+	//   6. Set APP_SERVING_MODE to "wfp".
+	// ---------------------------------------------------------------------
 	/* "dispatch_namespaces": [
 		{
 			"binding": "DISPATCHER",
@@ -68,22 +84,20 @@
 			"remote": true
 		}
 	], */
-	// Temporarily commented out containers for deployment
-	/* "containers": [
+	// Containers run ONLY during generation sessions (template load,
+	// preview builds). Published apps are static files in R2 and never
+	// execute here. Downsized to the smallest instance type and capped
+	// at 3 concurrent instances so worst-case container usage stays
+	// inside the Workers Paid plan's included amounts (see BUILD-LOG.md).
+	"containers": [
 		{
 			"class_name": "UserAppSandboxService",
 			"image": "./SandboxDockerfile",
-			// Altering max_instances value will have no effect. Please use the MAX_SANDBOX_INSTANCES var instead.
-			"max_instances": 2900,
-			// ATTENTION: Altering instance_type value will have no effect. Please use the SANDBOX_INSTANCE_TYPE var instead.
-			"instance_type": {
-				"vcpu": 4,
-				"memory_mib": 4096,
-				"disk_mb": 10240
-			},
+			"max_instances": 3,
+			"instance_type": "basic",
 			"rollout_step_percentage": 100
 		}
-	], */
+	],
 	"d1_databases": [
 		{
 			"binding": "DB",
@@ -99,11 +113,10 @@
 				"class_name": "CodeGeneratorAgent",
 				"name": "CodeGenObject"
 			},
-			// Temporarily commented out container-dependent Durable Object
-			/* {
+			{
 				"class_name": "UserAppSandboxService",
 				"name": "Sandbox"
-			}, */
+			},
 			{
 				"class_name": "DORateLimitStore",
 				"name": "DORateLimitStore"
@@ -114,6 +127,13 @@
 		{
 			"binding": "TEMPLATES_BUCKET",
 			"bucket_name": "vibecodeforstartup-templates",
+			"remote": true
+		},
+		{
+			// Published generated apps (static mode). Create once with:
+			//   npx wrangler r2 bucket create vibecodeforstartup-apps
+			"binding": "APPS_BUCKET",
+			"bucket_name": "vibecodeforstartup-apps",
 			"remote": true
 		}
 	],
@@ -137,12 +157,25 @@
 				"DORateLimitStore"
 			],
 			"tag": "v2"
+		},
+		{
+			"new_sqlite_classes": [
+				"UserAppSandboxService"
+			],
+			"tag": "v3"
 		}
 	],
 	"routes": [
 		{
 			"pattern": "vibecodeforstartup.com",
 			"custom_domain": true,
+			"zone_id": "57971c3330af23f20af3ac1b47842f17"
+		},
+		{
+			// Published apps live at <slug>.vibecodeforstartup.com.
+			// Requires a proxied wildcard DNS record in the zone:
+			//   *  AAAA  100::  (proxied) — one-time, see BUILD-LOG.md.
+			"pattern": "*.vibecodeforstartup.com/*",
 			"zone_id": "57971c3330af23f20af3ac1b47842f17"
 		}
 	],
@@ -152,8 +185,16 @@
 		// "DISPATCH_NAMESPACE": "vibecodeforstartup-default-namespace", // Temporarily disabled
 		"CLOUDFLARE_AI_GATEWAY": "vibecodeforstartup-gateway",
 		"CUSTOM_DOMAIN": "vibecodeforstartup.com",
-		"MAX_SANDBOX_INSTANCES": "10",
-		"SANDBOX_INSTANCE_TYPE": "standard",
+		// Generated-app serving: "static" (R2, default) or "wfp"
+		// (Workers for Platforms dispatch namespace — needs the $25/mo plan).
+		"APP_SERVING_MODE": "static",
+		// COST KILL SWITCH: set to "1" to instantly disable generation,
+		// previews, AI inference, and deploys account-wide. Fine-grained
+		// caps live in D1 system_settings (see GET /api/admin/usage) and
+		// can be mirrored here as GUARDRAIL_* vars (D1 wins when set).
+		"GENERATION_KILL_SWITCH": "0",
+		"MAX_SANDBOX_INSTANCES": "3",
+		"SANDBOX_INSTANCE_TYPE": "basic",
 		// Stripe price IDs — set these to your actual Stripe price IDs from the dashboard
 		"STRIPE_PRO_MONTHLY_PRICE_ID": "",
 		"STRIPE_PRO_ANNUAL_PRICE_ID": "",

@@ -28,4 +28,7 @@ export function setupCodegenRoutes(app: Hono<AppEnv>): void {
     app.get('/api/agent/:agentId/connect', setAuthLevel(AuthConfig.ownerOnly), adaptController(CodingAgentController, CodingAgentController.connectToExistingAgent));
 
     app.get('/api/agent/:agentId/preview', setAuthLevel(AuthConfig.authenticated), adaptController(CodingAgentController, CodingAgentController.deployPreview));
+
+    // Publish a generated app to its live URL - OWNER ONLY
+    app.post('/api/agent/:agentId/publish', setAuthLevel(AuthConfig.ownerOnly), adaptController(CodingAgentController, CodingAgentController.publishApp));
 }

@@ -9,6 +9,7 @@ import { AGENT_CONFIG } from './config';
 import { createLogger } from '../../logger';
 import { RateLimitExceededError, SecurityError } from '../../../shared/types/errors';
 import { ToolDefinition } from '../tools/types';
+import { GuardrailsService } from '../../services/guardrails/guardrails';
 
 const logger = createLogger('InferenceUtils');
 
@@ -101,6 +102,20 @@ export async function executeInference<T extends z.AnyZodObject>(   {
     const backoffMs = (attempt: number) => Math.min(100 * Math.pow(2, attempt), 10000);
 
     let useCheaperModel = false;
+
+    // GUARDRAILS: meter every AI inference call and enforce the global
+    // daily AI budget + per-session runaway brake BEFORE spending tokens.
+    // Metering failure throws here, which aborts the inference (fail closed).
+    await GuardrailsService.assertAiCallAllowed(env, {
+        userId: context?.userId ?? null,
+        agentId: context?.agentId ?? null,
+    });
+    await GuardrailsService.record(env, {
+        userId: context?.userId ?? null,
+        appId: context?.agentId ?? null,
+        kind: 'ai_call',
+        meta: { action: agentActionName, model: modelName },
+    });
 
     for (let attempt = 0; attempt < retryLimit; attempt++) {
         try {

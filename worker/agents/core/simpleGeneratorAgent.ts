@@ -40,6 +40,8 @@ import { looksLikeCommand } from '../utils/common';
 import { generateBlueprint } from '../planning/blueprint';
 import { prepareCloudflareButton } from '../../utils/deployToCf';
 import { AppService } from '../../database';
+import { GuardrailsService, GuardrailError } from '../../services/guardrails/guardrails';
+import { PublishService } from '../../services/publish/publish';
 import { RateLimitExceededError } from '../../../shared/types/errors';
 import { generateId } from '../../utils/idGenerator';
 
@@ -1133,6 +1135,23 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
         this.migrateStateIfNeeded();
         return this.state;
     }
+
+    /**
+     * Return the complete file tree (template + generated) for static
+     * publishing. Used by PublishService when APP_SERVING_MODE=static:
+     * the files are transformed and written to R2 by the API worker,
+     * no sandbox or Workers-for-Platforms deploy is involved.
+     */
+    async getFilesForPublish(): Promise<{ title: string; files: { path: string; contents: string }[] }> {
+        this.migrateStateIfNeeded();
+        const files = this.fileManager.getAllFiles()
+            .filter((f) => typeof f.fileContents === 'string')
+            .map((f) => ({ path: f.filePath, contents: f.fileContents as string }));
+        return {
+            title: this.state.blueprint?.title || this.state.query?.substring(0, 100) || 'Untitled App',
+            files,
+        };
+    }
     
     /**
      * Migrate old snake_case file properties to camelCase format
@@ -1771,6 +1790,60 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
     }
 
     /**
+     * Publish the generated app as a static site in R2 (APP_SERVING_MODE
+     * = static). Enforces deploy guardrails (kill switch + global
+     * deployed-app ceiling) and meters the deploy.
+     */
+    async publishStaticApp(): Promise<{ deploymentUrl?: string; workersUrl?: string } | null> {
+        const appId = this.getAgentId();
+        try {
+            if (!this.state.generatedFilesMap || Object.keys(this.state.generatedFilesMap).length === 0) {
+                this.broadcast(WebSocketMessageResponses.CLOUDFLARE_DEPLOYMENT_ERROR, {
+                    message: 'Deployment failed: No generated code available',
+                    error: 'No files have been generated yet'
+                });
+                return null;
+            }
+
+            await GuardrailsService.assertDeployAllowed(this.env, { appId });
+
+            const { title, files } = await this.getFilesForPublish();
+            if (files.length === 0) {
+                this.broadcast(WebSocketMessageResponses.CLOUDFLARE_DEPLOYMENT_ERROR, {
+                    message: 'Deployment failed: No publishable files found',
+                    error: 'Empty file tree'
+                });
+                return null;
+            }
+
+            const result = await PublishService.publishApp(this.env, { appId, title, files });
+
+            await GuardrailsService.record(this.env, {
+                userId: this.state.inferenceContext?.userId ?? null,
+                appId,
+                kind: 'deploy',
+                meta: { mode: 'static', files: result.fileCount },
+            });
+
+            this.broadcast(WebSocketMessageResponses.CLOUDFLARE_DEPLOYMENT_COMPLETED, {
+                message: 'Successfully published your app!',
+                deploymentUrl: result.deploymentUrl
+            });
+            return { deploymentUrl: result.deploymentUrl };
+        } catch (error) {
+            const message = error instanceof GuardrailError
+                ? error.message
+                : `Static publish failed: ${error instanceof Error ? error.message : String(error)}`;
+            this.logger().error('Static publish failed', error);
+            this.broadcast(WebSocketMessageResponses.CLOUDFLARE_DEPLOYMENT_ERROR, {
+                message,
+                error: message
+            });
+            return null;
+        }
+    }
+
+    /**
      * Deploy the generated code to Cloudflare Workers
      */
     async deployToCloudflare(): Promise<{ deploymentUrl?: string; workersUrl?: string } | null> {
@@ -1780,6 +1853,14 @@ export class SimpleCodeGeneratorAgent extends Agent<Env, CodeGenState> {
                 message: 'Starting deployment to Cloudflare Workers...',
                 instanceId: this.state.sandboxInstanceId,
             });
+
+            // SERVING MODE: static publishing (default) needs no sandbox
+            // and no Workers-for-Platforms. Only 'wfp' mode uses the
+            // sandbox -> dispatch namespace path below.
+            const servingMode = (this.env.APP_SERVING_MODE || 'static').toLowerCase();
+            if (servingMode !== 'wfp') {
+                return this.publishStaticApp();
+            }
 
             // Check if we have generated files
             if (!this.state.generatedFilesMap || Object.keys(this.state.generatedFilesMap).length === 0) {

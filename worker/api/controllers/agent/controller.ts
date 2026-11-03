@@ -10,6 +10,7 @@ import { ModelConfigService } from '../../../database';
 import type { UserModelConfigWithMetadata } from '../../../database/types';
 import { AgentActionKey, InferenceContext, ModelConfig } from '../../../agents/inferutils/config.types';
 import { RateLimitService } from '../../../services/rate-limit/rateLimits';
+import { GuardrailsService, GuardrailError } from '../../../services/guardrails/guardrails';
 import { validateWebSocketOrigin } from '../../../middleware/security/websocket';
 import { createLogger } from '../../../logger';
 import { getPreviewDomain } from '../../../utils/urls';
@@ -74,6 +75,29 @@ export class CodingAgentController extends BaseController {
             }
 
             const agentId = generateId();
+
+            // GUARDRAILS: hard cost gate. Must pass BEFORE any template work,
+            // sandbox session, or AI call happens. Fails closed when the
+            // metering store (D1) is unavailable.
+            try {
+                await GuardrailsService.assertGenerationAllowed(env, user.id);
+                await GuardrailsService.record(env, {
+                    userId: user.id,
+                    appId: agentId,
+                    kind: 'generation',
+                    meta: { queryLength: query.length },
+                });
+            } catch (error) {
+                if (error instanceof GuardrailError) {
+                    return CodingAgentController.createErrorResponse(error.message, error.status);
+                }
+                this.logger.error('Guardrail check failed - refusing generation', error);
+                return CodingAgentController.createErrorResponse(
+                    'Usage metering is unavailable, so generation is refused. Please try again later.',
+                    503,
+                );
+            }
+
             const modelConfigService = new ModelConfigService(env);
                                 
             // Fetch all user model configs, api keys and agent instance at once
@@ -240,6 +264,57 @@ export class CodingAgentController extends BaseController {
     }
 
     /**
+     * Publish a generated app so it is reachable at a live URL.
+     * In static mode (default) the agent publishes its file tree to R2;
+     * in wfp mode it deploys a user Worker to the dispatch namespace.
+     * Deploy guardrails (kill switch, deployed-app ceiling) are enforced
+     * inside the agent's deploy path.
+     */
+    static async publishApp(
+        _request: Request,
+        env: Env,
+        _: ExecutionContext,
+        context: RouteContext,
+    ): Promise<Response> {
+        const { user } = context;
+        if (!user) {
+            return CodingAgentController.createErrorResponse<AgentPreviewResponse>('Authentication required', 401);
+        }
+        const agentId = context.pathParams.agentId;
+        try {
+            const appRow = await env.DB
+                .prepare('SELECT id, user_id FROM apps WHERE id = ?')
+                .bind(agentId)
+                .first<{ id: string; user_id: string }>();
+            if (!appRow) {
+                return CodingAgentController.createErrorResponse<AgentPreviewResponse>('App not found', 404);
+            }
+            if (appRow.user_id !== user.id) {
+                return CodingAgentController.createErrorResponse<AgentPreviewResponse>('You do not own this app', 403);
+            }
+            const agentInstance = await getAgentStub(env, agentId, true, this.logger);
+            const result = await (agentInstance as unknown as {
+                deployToCloudflare: () => Promise<{ deploymentUrl?: string } | null>;
+            }).deployToCloudflare();
+            if (!result?.deploymentUrl) {
+                return CodingAgentController.createErrorResponse<AgentPreviewResponse>(
+                    'Publish failed — see the deployment status in the app view for details',
+                    502,
+                );
+            }
+            return CodingAgentController.createSuccessResponse({
+                deploymentUrl: result.deploymentUrl,
+            } as unknown as AgentPreviewResponse);
+        } catch (error) {
+            this.logger.error('Error publishing app:', error);
+            return CodingAgentController.createErrorResponse<AgentPreviewResponse>(
+                `Failed to publish app: ${error instanceof Error ? error.message : 'Unknown error'}`,
+                500,
+            );
+        }
+    }
+
+    /**
      * Connect to an existing agent instance
      * Returns connection information for an already created agent
      */
@@ -298,6 +373,23 @@ export class CodingAgentController extends BaseController {
             }
 
             this.logger.info(`Deploying preview for agent: ${agentId}`);
+
+            // GUARDRAILS: previews spin up sandbox containers - refuse when
+            // generation is disabled by the kill switch.
+            try {
+                const guardrailConfig = await GuardrailsService.getConfig(env);
+                if (!guardrailConfig.generationEnabled) {
+                    return CodingAgentController.createErrorResponse<AgentPreviewResponse>(
+                        'Previews are currently disabled by the platform operator.',
+                        503,
+                    );
+                }
+            } catch (error) {
+                if (error instanceof GuardrailError) {
+                    return CodingAgentController.createErrorResponse<AgentPreviewResponse>(error.message, error.status);
+                }
+                throw error;
+            }
 
             try {
                 // Get the agent instance

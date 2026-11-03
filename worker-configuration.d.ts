@@ -62,6 +62,18 @@ declare namespace Cloudflare {
 
     // Storage bindings
     TEMPLATES_BUCKET: R2Bucket;
+    APPS_BUCKET: R2Bucket;
+    APP_SERVING_MODE: string;
+    GENERATION_KILL_SWITCH: string;
+    GENERATION_ENABLED: string;
+    GUARDRAIL_USER_DAILY_GENERATIONS: string;
+    GUARDRAIL_GLOBAL_DAILY_GENERATIONS: string;
+    GUARDRAIL_USER_MAX_APPS: string;
+    GUARDRAIL_GLOBAL_MAX_DEPLOYED_APPS: string;
+    GUARDRAIL_GLOBAL_DAILY_AI_CALLS: string;
+    GUARDRAIL_AGENT_MAX_AI_CALLS: string;
+    GUARDRAIL_APP_DAILY_REQUEST_CAP: string;
+    GUARDRAIL_GLOBAL_DAILY_APP_REQUESTS: string;
     DB: D1Database;
 
     // Rate limiters

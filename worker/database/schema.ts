@@ -157,6 +157,8 @@ export const apps = sqliteTable('apps', {
     
     // Deployment Information
     deploymentId: text('deployment_id'), // Deployment ID (extracted from deployment URL)
+    slug: text('slug'), // Subdomain slug for the published app (static serving)
+    deploymentUrl: text('deployment_url'), // Public URL once the app is published
     
     // GitHub Repository Integration
     githubRepositoryUrl: text('github_repository_url'), // GitHub repository URL
@@ -541,6 +543,26 @@ export const userModelProviders = sqliteTable('user_model_providers', {
 /**
  * SystemSettings table - Global system configuration
  */
+/**
+ * Usage events - append-only metering for the cost guardrails.
+ * One row per generation, AI call, deploy, and served app request.
+ * Written by GuardrailsService; read by the admin usage view.
+ */
+export const usageEvents = sqliteTable('usage_events', {
+    id: text('id').primaryKey(),
+    userId: text('user_id'),
+    appId: text('app_id'),
+    kind: text('kind').notNull(), // 'generation' | 'ai_call' | 'deploy' | 'app_request'
+    units: integer('units').notNull().default(1),
+    day: text('day').notNull(), // UTC YYYY-MM-DD
+    meta: text('meta'), // JSON
+    createdAt: integer('created_at').notNull(),
+}, (table) => ({
+    dayKindIdx: index('usage_events_day_kind_idx').on(table.day, table.kind),
+    userDayKindIdx: index('usage_events_user_day_kind_idx').on(table.userId, table.day, table.kind),
+    appDayIdx: index('usage_events_app_day_idx').on(table.appId, table.day),
+}));
+
 export const systemSettings = sqliteTable('system_settings', {
     id: text('id').primaryKey(),
     key: text('key').notNull().unique(),

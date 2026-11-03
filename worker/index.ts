@@ -7,6 +7,8 @@ import * as Sentry from '@sentry/cloudflare';
 import { sentryOptions } from './observability/sentry';
 import { DORateLimitStore as BaseDORateLimitStore } from './services/rate-limit/DORateLimitStore';
 import { getPreviewDomain } from './utils/urls';
+import { GuardrailsService } from './services/guardrails/guardrails';
+import { contentTypeForPath } from './services/publish/publish';
 
 // Durable Object and Service exports
 export { UserAppSandboxService, DeployerService } from './services/sandbox/sandboxSdkClient';
@@ -21,10 +23,90 @@ const logger = createLogger('App');
 /**
  * Handles requests for user-deployed applications on subdomains.
  */
-async function handleUserAppRequest(request: Request, env: Env): Promise<Response> {
+async function handleUserAppRequest(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+	const servingMode = (env.APP_SERVING_MODE || 'static').toLowerCase();
+	if (servingMode === 'wfp') {
+		return handleUserAppRequestWfp(request, env);
+	}
+	return handleUserAppRequestStatic(request, env, ctx);
+}
+
+/**
+ * Static mode (default): serve the published app files from R2.
+ * No user code executes on this account — the browser runs the app and
+ * libraries load from esm.sh. Requests are metered in D1 and capped per
+ * app and globally (see GuardrailsService).
+ */
+async function handleUserAppRequestStatic(request: Request, env: Env, ctx: ExecutionContext): Promise<Response> {
+	const url = new URL(request.url);
+	const slug = url.hostname.split('.')[0];
+	if (!slug || !env.APPS_BUCKET) {
+		return new Response('App not found', { status: 404 });
+	}
+
+	let app: { id: string } | null = null;
+	try {
+		app = await env.DB
+			.prepare('SELECT id FROM apps WHERE slug = ?')
+			.bind(slug)
+			.first<{ id: string }>();
+	} catch {
+		return new Response('Service temporarily unavailable', { status: 503 });
+	}
+	if (!app) {
+		return new Response('App not found', { status: 404 });
+	}
+
+	const allowed = await GuardrailsService.appRequestAllowed(env, app.id);
+	if (!allowed) {
+		return new Response('This app has reached its daily traffic limit. Please check back tomorrow.', {
+			status: 429,
+			headers: { 'content-type': 'text/plain; charset=utf-8' },
+		});
+	}
+	ctx.waitUntil(GuardrailsService.recordBestEffort(env, { appId: app.id, kind: 'app_request' }));
+
+	let path = decodeURIComponent(url.pathname).replace(/^\/+/, '');
+	if (!path || path.endsWith('/')) path += 'index.html';
+
+	const prefix = `apps/${slug}/`;
+	let object = await env.APPS_BUCKET.get(prefix + path);
+	if (!object && !path.includes('.')) {
+		// SPA fallback: client-side routes serve index.html.
+		object = await env.APPS_BUCKET.get(prefix + 'index.html');
+		path = 'index.html';
+	}
+	if (!object) {
+		return new Response('Not found', { status: 404 });
+	}
+
+	const headers = new Headers();
+	headers.set('content-type', contentTypeForPath(path));
+	headers.set('cache-control', path === 'index.html' ? 'no-cache' : 'public, max-age=3600');
+	headers.set(
+		'content-security-policy',
+		"default-src 'self' https: data: blob:; " +
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://esm.sh https://cdn.tailwindcss.com; " +
+			"style-src 'self' 'unsafe-inline' https:; " +
+			"img-src 'self' data: blob: https:; " +
+			"font-src 'self' data: https:; " +
+			"connect-src 'self' https: wss:; " +
+			"frame-ancestors 'none'",
+	);
+	headers.set('x-content-type-options', 'nosniff');
+	return new Response(object.body, { headers });
+}
+
+/**
+ * Workers-for-Platforms mode: legacy behavior — proxy to a live sandbox
+ * preview when one exists, otherwise dispatch to the user Worker in the
+ * dispatch namespace. Requires the WfP plan ($25/mo, NOT included in the
+ * $5 Workers Paid plan) and the DISPATCHER binding in wrangler.jsonc.
+ */
+async function handleUserAppRequestWfp(request: Request, env: Env): Promise<Response> {
 	const url = new URL(request.url);
 	const { hostname } = url;
-	logger.info(`Handling user app request for: ${hostname}`);
+	logger.info(`Handling user app request (wfp) for: ${hostname}`);
 
 	const sandboxResponse = await proxyToSandbox(request, env);
 	if (sandboxResponse) {
@@ -95,7 +177,7 @@ const worker = {
 
 		// Route 2: User app subdomain
 		if (isSubdomainRequest) {
-			return handleUserAppRequest(request, env);
+			return handleUserAppRequest(request, env, ctx);
 		}
 
 		// Fallback: serve assets (handles cases like direct workers.dev access)
